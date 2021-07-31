@@ -22,10 +22,17 @@ import java.util.Map;
 public class Application {
 	public static Application app = null;
 	public static final String FileSep = "/";
+
+	public static String srcRoot ="C:/Users/markj/Documents/Google-Download/Takeout//ClassicSites//nolariadd";
 	public static String srcPath = "C:/Users/markj/Documents/Google-Download/Takeout/ClassicSites/nolariadd/norberg";
 	public static String srcName = "anthio.html";
 	public static String rootPath = "C:/apache-tomcat-9.0.40/webapps";
-	public static String rootName = "norberg4";
+	public static String rootName = "norberg3";
+
+	public static String mediaDirName = "media";
+	public static String homeFileName = "home.html";
+	public static String styleSheetName = "nolaria.css";
+	
 	public static Boolean contentOnly = false;	// True if only the content is copied.
 	public static enum FileType {WEB, IMAGE, VIDEO, AUDIO, TEXT, XML, JSON, DIR, UNKNOWN};
 	
@@ -45,7 +52,11 @@ public class Application {
 			return;
 		}
 		*/
-		//app.convert();
+
+		//	Copy home and style sheet to target.
+		app.copyFile(srcRoot+FileSep+app.homeFileName, rootPath+FileSep+rootName, "");
+		app.copyFile(srcRoot+FileSep+app.styleSheetName, rootPath+FileSep+rootName, "");
+		
 		System.out.println(rootName);
 		//app.recursiveWalk(1, srcPath+FileSep+srcName, rootName+FileSep+"pages");	//  Puts web pages in /norberg/pages.
 		app.recursiveWalk(1, srcPath+FileSep+srcName, rootName);
@@ -133,7 +144,8 @@ public class Application {
 				case VIDEO:
 					//System.out.println (indent(depth)+"Copy: "+srcName+" to: "+relTargetPath);
 					//copyFile (filePath, relTargetPath);
-					copyFile (filePath, rootName+FileSep+"media");
+					//copyFile (filePath, rootName+FileSep+"media");
+					copyFile (filePath, rootName, app.mediaDirName);
 					
 					break;
 					
@@ -228,17 +240,18 @@ public class Application {
 	 * 
 	 * @param srcPath to source file.
 	 * @param relTargetPath - target directory relative to Tomcat root.
+	 * @param subDirectory - usually the media folder, but could be another sub-folder.
 	 * @throws IOException 
 	 */
-	public void copyFile(String srcPath, String relTargetPath)  throws IOException {
+	public void copyFile(String srcPath, String relTargetPath, String subDirectory)  throws IOException {
 		File srcFile = new File (srcPath);
 		String srcName = srcFile.getName();
-		String targetDir = rootPath+FileSep+relTargetPath;
+		String targetDir = rootPath+FileSep+relTargetPath+FileSep+subDirectory;
 		File targetDirFile = new File(targetDir);
 		if (!targetDirFile.exists())
 			targetDirFile.mkdir();
 		//String fullTargetPath = rootPath+FileSep+relTargetPath+FileSep+srcName;		// Uses media node now.
-		String fullTargetPath = rootPath+FileSep+rootName+FileSep+"media"+FileSep+srcName;		// Uses media node now.
+		String fullTargetPath = rootPath+FileSep+rootName+FileSep+subDirectory+FileSep+srcName;		// Uses media node now.
 		File tgFile = new File (fullTargetPath);
 		//System.out.println("copyFile from "+srcName+" to "+fullTargetPath);
 		
@@ -320,9 +333,9 @@ public class Application {
 			char ch = content.charAt(i);
 			String remainingContent = content.substring(i);
 			
-			//	Check for an anchor link.
+			//	Check for an image.
 			if (checkForTag(remainingContent, "<img ") || checkForTag(remainingContent, "<IMG ")) {
-				System.out.println("Reference found.");
+				//System.out.println("Reference found.");
 				sb.append(ch);
 			}
 						
@@ -335,13 +348,92 @@ public class Application {
 	}
 	
 	/**
-	 * Fix all image references in an IMG tag.
+	 * Fix all image references in an IMG tag.<br>
+	 * <br>
+	 * Algorithm:<br>
+	 * 1. Scan for the string "<img".<br>
+	 * 2. When found, extract the whole IMG element.<br>
+	 * 3. Fix the media reference in the src attribute.<br>
+	 * 4. Append the fixed string to the string buffer.<br>
+	 * 5. Advance the index by the length of the fixed IMG element.<br>
 	 * 
 	 * @param content
 	 * @return fixed content string
 	 */
 	private String fixImages(String content) {
-		return content;
+		StringBuffer fixedContent = new StringBuffer();
+		
+		//	Check for the start of an IMG element.
+		for (int i=0; i<content.length(); i++) {
+			char currentChar = content.charAt(i);
+			
+			if ( (Character.toLowerCase(content.charAt(i)) == '<') && (Character.toLowerCase(content.charAt(i+1)) == 'i') && 
+				(Character.toLowerCase(content.charAt(i+2)) == 'm') && (Character.toLowerCase(content.charAt(i+3)) == 'g') ) {
+				
+				System.out.println("Image found.");
+				
+				//	Extract the IMG element.
+				StringBuffer imageBuf = new StringBuffer();
+				int j = i;
+				while ( (Character.toLowerCase(content.charAt(j)) != '>') && (j < content.length()) ) {  // Second clause prevents running off the end.
+					imageBuf.append(content.charAt(j));
+					j++;
+				}
+				imageBuf.append('>');
+				String imageElement = imageBuf.toString();
+				
+				//System.out.println("---------- Image element:");
+				//System.out.println("---------- "+imageElement);
+				
+				//	Extract the src parameter.
+				int srcOff = imageElement.indexOf("src=");
+				srcOff = srcOff + "src=\"".length();	// Skip over the src parameter to the start of the value.
+				String tempStr = imageElement.substring(srcOff, imageElement.length());
+				int quoteOff = tempStr.indexOf("\"");	//	Find the closing quote.
+				String srcParameter = imageElement.substring(srcOff, srcOff+quoteOff);	// Extract the value of the src parameter.
+				
+				//System.out.println("---------- srcParameter value:  "+srcParameter);
+				
+				//	Create the reference fix.
+				int slashOff = srcParameter.indexOf("/");
+				String fixedRef = FileSep + rootName + "/media/" + srcParameter.substring(slashOff+1, srcParameter.length());
+				
+				//System.out.println("---------- Fixed Ref:  "+fixedRef);
+				
+				//	Assemble the parts to make the fix.
+				String firstPart = imageElement.substring(0, srcOff);
+				String middlePart = fixedRef;
+				String endPart = imageElement.substring(imageElement.indexOf(srcParameter)+srcParameter.length(),imageElement.length());
+				String repairedElement = firstPart + middlePart + endPart;
+				
+				//System.out.println("---------- firstPart:  "+firstPart);
+				//System.out.println("---------- middlePart:  "+middlePart);
+				//System.out.println("---------- endPart:  "+endPart);
+				
+				//System.out.println("---------- Repaired image element:");
+				//System.out.println("---------- "+repairedElement);
+				
+				//	Append the fixed image to the fixed content.
+				fixedContent.append(repairedElement);
+				
+				//	Advance the character pointer past the old image element.
+				i += imageElement.length();
+			}
+			else {
+				//  Since this is not the start of an image element, just append the current character.
+				fixedContent.append(currentChar);
+			}
+			
+		}
+		
+		//System.out.println("----------");
+		//System.out.println(fixedContent);
+		//System.out.println("----------");
+		
+		//	Don't return the converted content until we know it works.
+		return fixedContent.toString();
+		
+		//return content;
 	}
 	
 	/**
@@ -495,7 +587,7 @@ public class Application {
 			sb.append("<!DOCTYPE html>\n");
 			sb.append("<html svTitle=\""+title+"\" lang=\"en-us\">\n");
 			sb.append("<header>\n");
-			sb.append("\t<link rel=\"stylesheet\" href=\"/"+Application.rootName+"/nolaria.css\">");
+			sb.append("\t<link rel=\"stylesheet\" href=\"/"+Application.rootName+"/nolaria.css\">\n");
 			sb.append("\t<title>"+title+"</title>\n");
 			sb.append("\t<meta name=\"title\" content=\""+title+"\" />\n");
 			sb.append("\t<meta name=\"name\" content=\""+name+"\" />\n");
