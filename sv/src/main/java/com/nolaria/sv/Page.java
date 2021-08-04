@@ -81,6 +81,15 @@ public class Page {
 	}
 	
 	/**
+	 * Get the full file name paths for this page.
+	 * 
+	 * @return full path string
+	 */
+	public String getFullPath() {
+		return PageFramework.FILE_ROOT + this.getRelPath() + this.getRef();
+	}
+	
+	/**
 	 * Get the array of relative path nodes.
 	 * If the array length is 0, ref is at the root.
 	 * 

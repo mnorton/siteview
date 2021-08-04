@@ -8,6 +8,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.HashMap;
 import java.util.TreeMap;
+import java.util.UUID;
 
 /**
  * The Page Framework is the base class of the Site Viewer app. It is
@@ -24,9 +25,10 @@ public class PageFramework {
 
 	public static String SLASH = "%2F";
 	public static int MAX_TITLE_LENGTH = 150;
-	public static String SITE_NODE = "norberg3";
-	public static String FILE_ROOT = "C:\\apache-tomcat-9.0.40\\webapps\\"+SITE_NODE+"\\";
 	public static int NAV_LINES = 100;
+	public static int MAX_NAV_DEPTH = 100;
+	public static String SITE_NODE = "nolaria";
+	public static String FILE_ROOT = "C:\\apache-tomcat-9.0.40\\webapps\\"+SITE_NODE+"\\";
 
 	public Page page = null;		//	The page referenced.
 	public static Logger logger = System.getLogger("sv");
@@ -40,7 +42,7 @@ public class PageFramework {
 		// this.ref = ref;
 
 		//	Add the site name to file root.
-		if (site == null) site="norberg2";
+		if (site == null) site="norberg3";
 		//if (FILE_ROOT.indexOf(site) == -1)
 		//	PageFramework.FILE_ROOT += site+"\\";
 		
@@ -69,9 +71,13 @@ public class PageFramework {
 		StringBuffer sb = new StringBuffer();
 
 		sb.append(
-				"<a href=\"/norberg/home.html\"><img float=\"left\" src=\"/norberg/media/customLogo.gif\" /></a>\n");
-		sb.append("&nbsp;&nbsp;&nbsp;&nbsp;\n");
-		sb.append("<span style=\"font-size: 16pt\"><b>" + this.page.getPageTitle() + "</b></span><br><br><br>\n");
+				"<a href=\"/"+SITE_NODE+"/home.html\"><img float=\"left\" src=\"/"+SITE_NODE+"/media/customLogo.gif\" width=\"500\"/></a>\n");
+		//sb.append("&nbsp;&nbsp;&nbsp;&nbsp;\n");
+		sb.append("<br>\n");
+		//sb.append("<span style=\"font-size: 16pt\"><b>" + this.page.getPageTitle() + "</b></span><br><br><br>\n");
+		
+		//	This version shows the full file path, that can be used for editing.
+		sb.append("<span style=\"font-size: 16pt\"><b>" + this.page.getFullPath() + "</b></span><br><br><br>\n");
 
 		return sb.toString();
 	}
@@ -94,8 +100,9 @@ public class PageFramework {
 	 * @return navigation text.
 	 */
 	public String getNavigation () {
-		return this.getFullNavigation();
-		//return this.getTwoLevelNavigation();
+		return this.getDropNavigation();		//	Nested drop down navigation tree.
+		//return this.getFullNavigation();		//	Full navigation shows all directories and files.
+		//return this.getTwoLevelNavigation();	//  Original navigation: this level and the next.
 	}
 	
 	/**
@@ -122,7 +129,8 @@ public class PageFramework {
 		// Check for no files in this directory.
 		File[] files = dirFile.listFiles();
 		if (files == null || files.length == 0) {
-			sb.append("No files in path: " + dirPath + ".<br>");
+			//sb.append("No files in path: " + dirPath + ".<br>");
+			sb.append("No files here.<br>\n");
 			return sb.toString();
 		}
 
@@ -187,10 +195,25 @@ public class PageFramework {
 	}
 	
 	/**
+	 * Get the text for full navigation using drop down icons.
+	 * 
+	 * @return full drop down navigation text.
+	 */
+	private String getDropNavigation() {
+		StringBuffer sb = new StringBuffer();
+		
+		sb.append("<div data-ui-css-component=\"treeview\"><ul>\n");
+		this.directoryWalkerDrop(0, "", sb);
+		sb.append("</ul></div>\n");
+		
+		return sb.toString();		
+	}
+	
+	/**
 	 * Recurse over the directory tree generating text for each level.
 	 * WARNING:  This method uses recursion!
 	 * 
-	 * @return
+	 * @return nav content
 	 */
 	private void directoryWalker (int level, String relPath, StringBuffer sb) {
 		//PageFramework.logger.log(Level.INFO, "Level: " + level + ", Rel Path:  ["+relPath+"]");
@@ -202,13 +225,13 @@ public class PageFramework {
 		// Check for no files in this directory.
 		File[] files = dirFile.listFiles();
 		if (files == null || files.length == 0) {
-			sb.append("No files in path: " + dirPath + ".<br>");
+			//sb.append("No files in path: " + dirPath + ".<br>");
+			sb.append("No files here.<br>\n");
 			return;
 		}
 		
 		TreeMap<String,File> fileList = new TreeMap<String,File>();
-		TreeMap<String,File> dirList = new TreeMap<String,File>();
-		
+		TreeMap<String,File> dirList = new TreeMap<String,File>();		
 
 		//	Iterate over all files in this directory and sort them into maps.
 		for (File f: files) {
@@ -242,8 +265,11 @@ public class PageFramework {
 					PageFramework.logger.log(Level.INFO, "Directory found: " + level + ", Rel File Path:  ["+relFilePath+"], Name: "+name+", File name: "+fn);
 					//sb.append(indent(level)+"<a href='/sv?ref="+relFilePath+fn+"'>"+name+"</a><br>\n");
 					//sb.append(directoryWalker(level++, relFilePath, sb.toString()));
-					sb.append(indent(level)+"<a href='/sv?ref="+relFilePath+".html'>"+name+"</a><br>\n");
-					directoryWalker(++level, relFilePath, sb);
+					if (level == 0)
+						sb.append("<br>"+indent(level)+"<b><a href='/sv?ref="+relFilePath+".html'>"+name+"</a></b><br>\n");
+					else
+						sb.append(indent(level)+"<a href='/sv?ref="+relFilePath+".html'>"+name+"</a><br>\n");
+					directoryWalker(level+1, relFilePath, sb);
 				}
 			}
 			
@@ -269,6 +295,98 @@ public class PageFramework {
 		}
 	}
 	
+	/**
+	 * Recurse over the directory tree generating text for each folder level.
+	 * This version generates HTML that uses the drop down navigation controls in CSS.
+	 * 
+	 * WARNING:  This method uses recursion!
+	 * 
+	 * @return drop down nav content
+	 */
+	private void directoryWalkerDrop (int level, String relPath, StringBuffer sb) {
+		//PageFramework.logger.log(Level.INFO, "Level: " + level + ", Rel Path:  ["+relPath+"]");
+		
+		//	Convert relative path to a full path.
+		String dirPath = FILE_ROOT + relPath;
+		File dirFile = new File(dirPath);
+		
+		// Check for no files in this directory.
+		File[] files = dirFile.listFiles();
+		if (files == null || files.length == 0) {
+			//sb.append("No files in path: " + dirPath + ".<br>");
+			sb.append("No files here.<br>\n");
+			return;
+		}
+		
+		TreeMap<String,File> fileList = new TreeMap<String,File>();
+		TreeMap<String,File> dirList = new TreeMap<String,File>();		
+
+		//	Iterate over all files in this directory and sort them into maps.
+		for (File f: files) {
+			String name = f.getName();
+			
+			//	See if this file is a directory.
+			if (f.isDirectory()) {
+				//PageFramework.logger.log(Level.INFO, "Directory name added to list: " +name);
+				dirList.put(name, f);
+			}
+			
+			//	If not, it is a file.
+			else {
+				fileList.put(name, f);
+			}
+		}
+		
+		for (File f: files) {
+			String name = f.getName();
+			String relFilePath = this.extractRelativePath(f.getPath());		//	Includes /sv/ at the start.
+			relFilePath = relFilePath.replaceAll("\\\\", "/");
+			
+			//	This id is used for the drop down controls.  Using page names led to duplicate ids that prevented some folders from dropping down.
+			String randId = UUID.randomUUID().toString();
+			
+			//	See if this file is a directory.
+			if (f.isDirectory()) {
+				//PageFramework.logger.log(Level.INFO, "Directory found: " + level + ", Rel Path:  "+relFilePath);
+				if (name.compareTo("media") != 0) {
+					//String fn = name+".html";
+					//sb.append(indent(level)+"<b><a href='/sv?ref="+relFilePath+".html'>"+name+"</a></b><br>\n");
+					
+					sb.append(tabber(level)+"<li>\n");
+					sb.append(tabber(level)+"<input type=\"checkbox\" id=\""+randId+"\"/>\n");
+					sb.append(tabber(level)+"<label for=\""+randId+"\">");
+					sb.append(indent(level)+"<a href='/sv?ref="+relFilePath+".html'>"+name+"</a>");
+					sb.append("</label>\n");
+					sb.append(tabber(level)+"<ul>\n");
+
+					//	Recurse into the directory.
+					if (level < MAX_NAV_DEPTH) {
+						directoryWalkerDrop(level+1, relFilePath, sb);
+					}
+
+					sb.append(tabber(level)+"</ul>\n");
+					sb.append(tabber(level)+"</li>\n");
+				}
+			}
+			
+			//	If not, it is a file.
+			else {
+				//	Filter out the style sheet, if it shows up.
+				if (name.compareTo("nolaria.css") == 0)
+						continue;
+				
+				//	If the name is not in the directory list, then add it.
+				String[] parts = name.split("\\.");
+				if (dirList.get(parts[0]) == null) {
+					//sb.append(indent(level)+"<a href='/sv?ref="+relFilePath+"'>"+name+"</a><br>\n");
+					sb.append(tabber(level)+"<li><span>");
+					sb.append(indent(level)+"<a href='/sv?ref="+relFilePath+"'>"+name+"</a>");
+					sb.append("</span></li>\n");
+				}
+			}
+
+		}
+	}
 	
 	//  TODO:  remove this once confidence in navigation is restored.
 	private String getNavigationOld() {
@@ -388,7 +506,14 @@ public class PageFramework {
 			sb.append("&nbsp;&nbsp;");
 		return sb.toString();
 	}
-	
+
+	private String tabber(int level) {
+		StringBuffer sb = new StringBuffer();
+		for (int i=0; i<level; i++)
+			sb.append("\t");
+		return sb.toString();
+	}
+
 	/**
 	 * Extract the relative path from a full path.
 	 * 

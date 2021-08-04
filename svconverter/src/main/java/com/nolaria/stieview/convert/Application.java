@@ -7,8 +7,10 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 
 
@@ -22,12 +24,15 @@ import java.util.Map;
 public class Application {
 	public static Application app = null;
 	public static final String FileSep = "/";
+	public static final String URL_PREFIX = "http://localhost:8080";
 
-	public static String srcRoot ="C:/Users/markj/Documents/Google-Download/Takeout//ClassicSites//nolariadd";
-	public static String srcPath = "C:/Users/markj/Documents/Google-Download/Takeout/ClassicSites/nolariadd/norberg";
-	public static String srcName = "anthio.html";
+	//public static String srcRoot ="C:/Users/markj/Documents/Google-Download/Takeout//ClassicSites//nolariadd";	//	Directory of home and css.
+	public static String baseDir = "C:/Users//markj/Documents/Google-Download/Takeout//Classic Sites/_base";		//	Directory of home and css.
+	public static String srcPath = "C:/Users/markj/Documents/Google-Download/Takeout/Classic Sites/nolariadd";
+	//public static String srcName = "mahan.html";
 	public static String rootPath = "C:/apache-tomcat-9.0.40/webapps";
-	public static String rootName = "norberg3";
+	//public static String rootName = "norberg3";
+	public static String rootName = "nolaria";
 
 	public static String mediaDirName = "media";
 	public static String homeFileName = "home.html";
@@ -52,15 +57,31 @@ public class Application {
 			return;
 		}
 		*/
+		
+		String startTime = new Date().toString();
 
 		//	Copy home and style sheet to target.
-		app.copyFile(srcRoot+FileSep+app.homeFileName, rootPath+FileSep+rootName, "");
-		app.copyFile(srcRoot+FileSep+app.styleSheetName, rootPath+FileSep+rootName, "");
+		app.copyFile(baseDir+FileSep+app.homeFileName, rootPath+FileSep+rootName, "");
+		app.copyFile(baseDir+FileSep+app.styleSheetName, rootPath+FileSep+rootName, "");
 		
 		System.out.println(rootName);
-		//app.recursiveWalk(1, srcPath+FileSep+srcName, rootName+FileSep+"pages");	//  Puts web pages in /norberg/pages.
-		app.recursiveWalk(1, srcPath+FileSep+srcName, rootName);
-		System.out.println("Done.");
+
+		//	Iterate over all .html files in the srcPath directory.
+		File srcPathFile = new File(srcPath);
+		String[] rootFiles = srcPathFile.list();
+		System.out.println("Files in the root: "+rootFiles.length);
+		for (String rootFile : rootFiles) {
+			if (rootFile.indexOf("html") >= 0) {
+				//System.out.println ("rescursiveWalk (1,"+srcPath+FileSep+rootFile+","+rootName+");");
+				app.recursiveWalk(1, srcPath+FileSep+rootFile, rootName);
+			}
+		}
+		
+		String endTime = new Date().toString();
+		
+		System.out.println("\nDone.");
+		System.out.println("Start Time:  "+startTime);
+		System.out.println("End Time:  "+endTime);
 	}
 
 	
@@ -394,9 +415,9 @@ public class Application {
 				
 				//System.out.println("---------- srcParameter value:  "+srcParameter);
 				
-				//	Create the reference fix.
+				//	Create the reference fix.  The URL prefix is added to make the images viewable in BlueGriffin.
 				int slashOff = srcParameter.indexOf("/");
-				String fixedRef = FileSep + rootName + "/media/" + srcParameter.substring(slashOff+1, srcParameter.length());
+				String fixedRef = URL_PREFIX + FileSep + rootName + "/media/" + srcParameter.substring(slashOff+1, srcParameter.length());
 				
 				//System.out.println("---------- Fixed Ref:  "+fixedRef);
 				
@@ -572,6 +593,7 @@ public class Application {
 		StringBuffer sb = new StringBuffer();
 		String title = properties.get("title");
 		String name = properties.get("name");
+		String pid = UUID.randomUUID().toString();
 		
 		//	Generate text for a content only output.
 		if (contentOnly) {
@@ -579,6 +601,7 @@ public class Application {
 			//	Add title and name meta tags.
 			sb.append("<meta name=\"title\" content=\""+title+"\" />\n");
 			sb.append("<meta name=\"name\" content=\""+name+"\" />\n");
+			sb.append("<meta name=\"pid\" content=\""+pid+"\" />\n");
 		}
 		
 		//	Generate text for a static web page.
@@ -591,6 +614,7 @@ public class Application {
 			sb.append("\t<title>"+title+"</title>\n");
 			sb.append("\t<meta name=\"title\" content=\""+title+"\" />\n");
 			sb.append("\t<meta name=\"name\" content=\""+name+"\" />\n");
+			sb.append("\t<meta name=\"pid\" content=\""+pid+"\" />\n");
 			
 			sb.append("\t<style>\n");
 			sb.append("\tbody {\n");

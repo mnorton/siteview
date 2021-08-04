@@ -15,7 +15,7 @@
 	<meta name="title" content="<%= name %>" />
 	<meta name="name" content="<%= name %>" />
 	
-	<link rel="stylesheet" href="/norberg3/nolaria.css">
+	<link rel="stylesheet" href="/nolaria/nolaria.css">
 	<!--
 	<style>
 		body {
