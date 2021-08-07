@@ -33,6 +33,7 @@ public class Application {
 	public static String rootPath = "C:/apache-tomcat-9.0.40/webapps";
 	//public static String rootName = "norberg3";
 	public static String rootName = "nolaria";
+	public static String styleSheetLocation ="file:///C:/Web/green.css";
 
 	public static String mediaDirName = "media";
 	public static String homeFileName = "home.html";
@@ -229,6 +230,7 @@ public class Application {
 		StringBuffer sb = new StringBuffer();
 		
 		//	Extract title and name.
+		//  TODO:  Check for single characgter titles and fix them.
 		Map<String,String> properties = extractNames(srcContent);
 		//System.out.println("Page title: ["+properties.get("title")+"] name: ["+properties.get("name")+"]");
 		
@@ -499,6 +501,7 @@ public class Application {
 		//	Extract the page title
 		int titleOff = content.indexOf("<meta name=\"title\"");
 		//System.out.println("Title string: "+content.substring(titleOff, titleOff+60));
+				
 		if (titleOff != -1) {
 			
 			//	Scan for third quote mark.
@@ -529,6 +532,9 @@ public class Application {
 				}
 				endQuoteOff++;
 			}
+			
+			//	TODO:  Check for a single character title here and fix it from the page name.
+
 			if (endQuoteOff-titleOff > 0) {
 				String title = content.substring(titleOff, endQuoteOff-1);
 				names.put("title", title);
@@ -609,21 +615,22 @@ public class Application {
 			//	Add header block with title and meta tags.
 			sb.append("<!DOCTYPE html>\n");
 			sb.append("<html svTitle=\""+title+"\" lang=\"en-us\">\n");
-			sb.append("<header>\n");
-			sb.append("\t<link rel=\"stylesheet\" href=\"/"+Application.rootName+"/nolaria.css\">\n");
+			sb.append("<head>\n");		// Fixed from <header>
+			sb.append("\t<link rel=\"stylesheet\" href=\"/"+styleSheetLocation+"\">\n");	//	This allows BlueGriffin to see the style sheet.
 			sb.append("\t<title>"+title+"</title>\n");
 			sb.append("\t<meta name=\"title\" content=\""+title+"\" />\n");
 			sb.append("\t<meta name=\"name\" content=\""+name+"\" />\n");
 			sb.append("\t<meta name=\"pid\" content=\""+pid+"\" />\n");
 			
-			sb.append("\t<style>\n");
-			sb.append("\tbody {\n");
-			sb.append("\t\tcolor: black;\n");
-			sb.append("\t\tfont-family: Arial;\n");
-			sb.append("\t}\n");
-			sb.append("\t</style>\n");
+			//	This is covered in the style sheet, so not needed.
+			//sb.append("\t<style>\n");
+			//sb.append("\tbody {\n");
+			//sb.append("\t\tcolor: black;\n");
+			//sb.append("\t\tfont-family: Arial;\n");
+			//sb.append("\t}\n");
+			//sb.append("\t</style>\n");
 			
-			sb.append("</header>\n");
+			sb.append("</head>\n");		//	Fixed from </header>
 			sb.append("<body>\n");
 			sb.append("<h1>"+title+"</h1>\n");
 		}

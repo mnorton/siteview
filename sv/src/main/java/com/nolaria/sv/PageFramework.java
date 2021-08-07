@@ -306,6 +306,8 @@ public class PageFramework {
 	private void directoryWalkerDrop (int level, String relPath, StringBuffer sb) {
 		//PageFramework.logger.log(Level.INFO, "Level: " + level + ", Rel Path:  ["+relPath+"]");
 		
+		String[] relParts = this.page.relPath.split("/");
+		
 		//	Convert relative path to a full path.
 		String dirPath = FILE_ROOT + relPath;
 		File dirFile = new File(dirPath);
@@ -348,12 +350,20 @@ public class PageFramework {
 			//	See if this file is a directory.
 			if (f.isDirectory()) {
 				//PageFramework.logger.log(Level.INFO, "Directory found: " + level + ", Rel Path:  "+relFilePath);
+				//System.out.println("Recursion level: "+level+" relFilePath: "+relFilePath+" name: "+name);
 				if (name.compareTo("media") != 0) {
 					//String fn = name+".html";
 					//sb.append(indent(level)+"<b><a href='/sv?ref="+relFilePath+".html'>"+name+"</a></b><br>\n");
 					
+					String checked = "";
+					if (level < relParts.length)
+						if (relParts[level].compareTo(name) == 0)
+							checked = " checked=\"true\"";
+//						else
+//							System.out.println(relParts[level]+" is note the same as "+name);
+					
 					sb.append(tabber(level)+"<li>\n");
-					sb.append(tabber(level)+"<input type=\"checkbox\" id=\""+randId+"\"/>\n");
+					sb.append(tabber(level)+"<input type=\"checkbox\" id=\""+randId+"\""+checked+"/>\n");
 					sb.append(tabber(level)+"<label for=\""+randId+"\">");
 					sb.append(indent(level)+"<a href='/sv?ref="+relFilePath+".html'>"+name+"</a>");
 					sb.append("</label>\n");
