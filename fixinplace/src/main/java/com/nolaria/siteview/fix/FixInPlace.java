@@ -38,7 +38,7 @@ public class FixInPlace {
 	 */
 	public static void main(String[] args) {
 		//app.fixOneFile(testInputFile);		//	Just fix the specified file - used for testing.
-		//app.fixAllFilesk(rootFolder);			//	Fix all files starting at the root specified.
+		app.fixAllFiles(rootFolder);			//	Fix all files starting at the root specified.
 		app.analyzeAllFiles(rootFolder);		//	Collect bug statistics starting at the root specified.
 	}
 
@@ -47,18 +47,29 @@ public class FixInPlace {
 	 * for one-off fixing a specific file.
 	 */
 	public void fixOneFile (String fileName) {
+		//	Get the file's contents.
 		String content = this.loadFile(fileName);
+		
+		//	Get the page name.  Used to fix titles.
 		File contentFile = new File(fileName);
-		String pageName = contentFile.getName();
+		String pageName = contentFile.getName();		
 		pageName = pageName.substring(0, pageName.indexOf('.'));
-		System.out.println("File to be fixed:  "+fileName+" - Page name: "+pageName);
+		//System.out.println("File to be fixed:  "+fileName+" - Page name: "+pageName);
 		
 		//	Fix HEADER problems.  See comments in method, below.
-		String fixedContent = this.fixHeader(content, pageName);
-		
-		//System.out.println("\n"+fixedContent);
-		
-		this.saveFile(fixedContent, testOutputFile);
+		try {
+			String fixedContent = this.fixHeader(content, pageName);
+			
+			//System.out.println("\n"+fixedContent);
+			
+			this.saveFile(fixedContent, fileName);		//	Use this one to fix for real.
+			//this.saveFile(fixedContent, testOutputFile);	//	 Use this one to test a fix.
+		}
+		catch (FixException fe) {
+			System.out.println("Fix Exception: "+fe.getMessage());
+		}
+		System.out.println("File got fixed: "+fileName);
+
 	}
 
 	/**
@@ -67,7 +78,8 @@ public class FixInPlace {
 	 * @param rootFolder
 	 */
 	public void fixAllFiles(String rootFolder) {
-		
+		this.recursiveFixWalk(0, rootFolder);
+		System.out.println("Files encountered: "+this.fileCt);
 	}
 
 	/**
@@ -114,8 +126,27 @@ public class FixInPlace {
 	 * @param relTargetPath
 	 * @throws IOException
 	 */
-	public void recursiveFixWalk(int depth, String filePath, String relTargetPath) throws IOException {
+	public void recursiveFixWalk(int depth, String fileName) {
+		File file = new File(fileName);
 		
+		//	Check for media folder.
+		if (file.getName().compareTo("media") == 0)
+			return;
+		
+		//	If this is a directory, recurse to lower level.
+		if (file.isDirectory()) {
+			File[] files = file.listFiles();
+			for (File newFile : files) {
+				this.recursiveFixWalk(depth+1, newFile.getPath());
+			}
+		}
+		
+		//	Otherwise, collect statistics on this file.
+		else {
+			this.fixOneFile(fileName);
+			this.fileCt++;
+		}
+
 	}
 	
 	/**
@@ -152,30 +183,31 @@ public class FixInPlace {
 
 	/**
 	 * This fixes the following:
-	 * <ul>
-	 * <li>Strip off unneeded styling.</li>
-	 * <li>Remove svTitle in the HTML tag.  It is not needed.</li>
-	 * <li>Change HEADER> to HEAD</li>
-	 * <li>Fix pages with a dash in the name, such as, be-01---wainwright.html</li>
-	 * <li>Fix title</li>
-	 * <li>Fix meta title</li>
-	 * <li>Fix meta name</li>
-	 * <li>Fix the H2 in the page content.</li>
-	 * </ul>
-	 * This is done by extracting the title, page, and pid and regenerating the HEAD block
+	 * 
+	 * 	- Strip off unneeded styling in the HEAD section.
+	 *	- Remove svTitle in the HTML tag.  It is not needed.
+	 *  - Change HEADER to HEAD.
+	 *	- Fix pages with a dash in the name, such as, be-01---wainwright.html.  Google generates a single letter title.
+	 *		- Fix title
+	 * 		- Fix meta title
+	 * 		- Fix meta name
+	 * 		- Retain PID
+	 * 	- Fix the H2 in the page content.
+	 * 
+	 * This is done by extracting the title, page, and PID and regenerating the HEAD block
 	 * 
 	 * @param content
 	 * @return repaired content
+	 * @throws FixException if HEADER is not found, which implies an already fixed file.
 	 */
-	public String fixHeader(String content, String pageName) {
+	public String fixHeader(String content, String pageName) throws FixException{
 		String title = null;	//	The page title.
 		String name = null;		//	The page name.
 		String pid = null;		//	The page identifier (UUID).
 		
 		int endHeaderIndex = content.indexOf("</header>");
 		if (endHeaderIndex == -1) {
-			System.out.println ("Unable to find the closing H2 element.");
-			return content;
+			throw new FixException("Unable to find the closing HEADER element on page:"+pageName);
 		}
 		
 		//	Extract the header block.
@@ -198,24 +230,33 @@ public class FixInPlace {
 		int endPidOffset = headerBlock.indexOf("\"", startPidOffset+idStart.length());
 		pid = headerBlock.substring(startPidOffset+idStart.length(), endPidOffset);
 		
-		System.out.println("Title: "+title);
-		System.out.println("Name: "+name);
-		System.out.println("PID: "+pid);
+		//System.out.println("Title: "+title);
+		//System.out.println("Name: "+name);
+		//System.out.println("PID: "+pid);
 		
 		//	Test for the single letter case and correct if detected.
 		if (title.length() == 1) {
 			title = pageName.replace("-", " ");
-			String[] parts = title.split(" ");
 			
 			//	Capitalize the title.  More involved that it should be.
-			StringBuffer newTitle = new StringBuffer();
-			for (String part : parts) {
-				String caps = part.toUpperCase();
-				part = caps.substring(0, 1) + part.substring(1, part.length());
-				newTitle.append(part+" ");
+			if (title.length() > 2) {
+				StringBuffer newTitle = new StringBuffer();
+				String[] parts = title.split(" ");
+				
+				
+
+				for (String part : parts) {
+					String caps = part.toUpperCase();
+					if (part.length()>0)
+						part = caps.substring(0, 1) + part.substring(1, part.length());
+					newTitle.append(part+" ");
+				}
+				title = newTitle.toString().trim();
+				System.out.println("Fixed title capitalized:  "+title);
 			}
-			title = newTitle.toString().trim();
-			name = pageName;
+			else {
+				title = title.toUpperCase();
+			}
 		}
 		
 		//	Create fixed header block.
