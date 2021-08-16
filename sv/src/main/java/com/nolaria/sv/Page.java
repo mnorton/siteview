@@ -6,29 +6,30 @@ package com.nolaria.sv;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.lang.System.Logger.Level;
+//import java.lang.System.Logger.Level;
+import java.util.UUID;
 
 import com.nolaria.sv.PageFramework.FileType;
 
 /**
  * A page models a web page given by a reference:  a relative path plus a page name with an HTML or HTML extension.
- * This model is only concerned with page metadata (such as ref and title), and the contents of the page.
+ * The Page model has been extended to include ref based information and meta data element in the HEAD of the contents.
  * Pane management happens in PageFramework.
  * 
  * @author Mark J. Norton - markjorton@gmail.com
  *
  */
-public class Page {
-	
-	String ref = null;				//	Full reference to this page: relative path and page name.
+public class Page {	
+	String ref = "";				//	Full reference to this page: relative path and page name.
 	String relPath = "";			//	The relative path
 	String[] relPathNodes = null;	//	The list of directory nodes in the relative path.  Page name is not included.
-	String pageName = null;			//	The page name.
-	String pageTitle = null;		//	The page title (which may be different than the name.
+	
+	String pageName = null;			//	The page file name, such as page.html.  Extension is included.
+	String pageTitle = null;		//	The page title.
+	String pageId = null;			//	The page identifier.
 	String content = null;			//	Contents of the page.
 
-	String pagesRef = null;			//	The pages node plus ref.
-	String mediaRef = null;			//	The media node ref.  So far, the media directory is flat, so only one file node.
+	//String mediaRef = "media";		//	The media node ref.  So far, the media directory is flat, so only one file node.
 
 	
 	/**
@@ -36,31 +37,34 @@ public class Page {
 	 * A reference consists of zero or more directory nodes plus a page name with extension.
 	 * These notes are separated by a FILE_SEPARATOR.
 	 * 
+	 * If the page reference is null, it defaults to an empty string.
+	 * 
 	 * @param ref
 	 */
 	public Page(String ref) {
-		//	Refer should never be passed as null, but just in case ...
-		if (ref == null) {
-			PageFramework.logger.log(Level.ERROR, "Null reference was passed to Page constructor.");
-			ref = "";
+		//	Save the page reference.
+		if (ref != null) {
+			this.ref = ref;
 		}
-		this.ref = ref;
-		//this.pagesRef  = "pages/" + ref;
-		this.pagesRef = ref;
-		this.mediaRef = "media";
-		
-		//LogHandler.logger.info("Passed ref:  "+ref);
-		String[] nodes = ref.split("/");
-		int nodeCt = nodes.length;
 		
 		// Extract page name.
+		String[] nodes = ref.split("/");
+		int nodeCt = nodes.length;		
 		this.pageName = nodes[nodeCt-1];
-		//LogHandler.logger.info("Page name:  "+this.pageName);
 		
 		// Build the relative path.
 		for (int i=0; i<nodeCt-1; i++) {
 			this.relPath = this.relPath + nodes[i] + "/";
 		}
+		
+		//	Extract page information from the header.
+		PageInfo info = this.getHeaderInfo(this.getContent());
+		this.pageTitle = info.title;
+		if (info.pid == null)
+			this.pageId = UUID.randomUUID().toString();
+		else
+			this.pageId = info.pid;
+		//System.out.println(info.toString());
 	}
 
 	/**
@@ -86,7 +90,8 @@ public class Page {
 	 * @return full path string
 	 */
 	public String getFullPath() {
-		return PageFramework.FILE_ROOT + this.getRelPath() + this.getRef();
+		//return PageFramework.FILE_ROOT + this.getRelPath() + this.getRef();
+		return PageFramework.FILE_ROOT + this.getRef();
 	}
 	
 	/**
@@ -117,6 +122,7 @@ public class Page {
 	 * @return page title.
 	 */
 	public String getPageTitle() {
+		/*	This approach is out of date
 		if (this.pageTitle == null) {
 			String contents = this.getContent();
 			int offset = contents.indexOf("svTitle=\"");
@@ -141,27 +147,47 @@ public class Page {
 				this.pageTitle=sb.toString();
 				PageFramework.logger.log(Level.INFO, "Page title found: "+this.pageTitle);
 			}	
+		}  */
+		
+		//	If there is no page title, then create one from the page name.
+		if (this.pageTitle == null) {
+			this.pageTitle = this.getPageName();
+			this.pageTitle = this.pageTitle.substring(0, this.pageTitle.indexOf(".html"));
 		}
+		
 		return this.pageTitle;
+	}
+	
+	
+	/**
+	 * Get the page identifier.
+	 * @return
+	 */
+	public String getPageId() {
+		return this.getPageId();
 	}
 
 	/**
-	 * Get the contents of the file and show them.
-	 * This method can be used to support file processing before being display, though no such processing is done right now.
+	 * Get the contents of the file associated with the page..
 	 * 
-	 * @param reference
 	 * @return content text
 	 */
 	public String getContent() {
-		//LogHandler.logger.info("Content file to load: "+this.ref);
-		
 		//	Returned cached page contents, if available.  Commented out section puts content into the generated page.
-		/* if (this.content == null)
-			this.content = fetchContents(this.pagesRef);
-		return this.content;  */
+		if (this.content == null)
+			this.content = fetchContents(this.ref);
+
+		return this.content;		
+	}
+	
+	/**
+	 * Get HTML markup to embed this page in an iFrame.
+	 * @return iFrame markup
+	 */
+	public String getIFrame() {
+		//	This is the markup that puts an iFrame into the content pane.
+		return "\t<iframe src=\"/"+PageFramework.SITE_NODE+"/"+this.ref+"\" title=\""+this.pageTitle+"\"></iframe>\n";
 		
-		//	This puts an iFrame into the content pane.
-		return "\t<iframe src=\"/"+PageFramework.SITE_NODE+"/"+this.pagesRef+"\" title=\""+this.pageTitle+"\"></iframe>\n";
 	}
 
 	
@@ -278,5 +304,66 @@ public class Page {
 			return FileType.DIRECTORY;
 
 		return FileType.UNKNOWN;
+	}
+	
+	/**
+	 * This utility method takes the page content and extracts key page data including:
+	 * 
+	 * 	-	Title
+	 * 	-	Name
+	 * 	-	PID (page identifier)
+	 * 
+	 * If any of these data are not found, null is return in that field.
+	 * 
+	 * @param headerBlock
+	 * @return PageInfo object
+	 */
+	protected PageInfo getHeaderInfo(String pgContent) {
+		String title = null;	//	The page title.
+		String name = null;		//	The page name.
+		String pid = null;		//	The page identifier (UUID).
+				
+		//  Extract the title.
+		int startTitleOffset = pgContent.indexOf("<title>");
+		int endTitleOffset = pgContent.indexOf("</title>", startTitleOffset+1);
+		if (startTitleOffset > 0 && endTitleOffset > 0)
+			title = pgContent.substring(startTitleOffset+"<title>".length(), endTitleOffset);
+		
+		//	Extract the name.
+		String nameStart = "name=\"name\" content=\"";
+		int startNameOffset = pgContent.indexOf(nameStart);
+		int endNameOffset = pgContent.indexOf("\"", startNameOffset+nameStart.length());
+		if (startNameOffset > 0 && endNameOffset > 0)
+			name = pgContent.substring(startNameOffset+nameStart.length(), endNameOffset);
+		
+		//	Extract the page identifier.
+		String idStart = "name=\"pid\" content=\"";
+		int startPidOffset = pgContent.indexOf(idStart);
+		int endPidOffset = pgContent.indexOf("\"", startPidOffset+idStart.length());
+		if (startPidOffset > 0 && endPidOffset > 0)
+			pid = pgContent.substring(startPidOffset+idStart.length(), endPidOffset);
+		
+		return new PageInfo(title,name,pid);	
+	}
+	
+	/**
+	 * Returns a formatted string with all page information.  This is intended for debugging purposes.
+	 * @return page infor string
+	 */
+	public String toString() {
+		StringBuffer sb = new StringBuffer();
+		
+		sb.append("Information associated with: "+this.pageTitle+"\n");
+		sb.append("\tPath Info:\n");
+		sb.append("\t\tref: "+this.ref+"\n");
+		sb.append("\t\trelPath: "+this.relPath+"\n");
+		//sb.append("\t\trelPathNodes: "+this.relPathNodes.toString()+"\n");
+		sb.append("\tMeta Data: "+"\n");
+		sb.append("\t\tpageName: "+this.pageName+"\n");
+		sb.append("\t\tpageTitle: "+this.pageTitle+"\n");
+		sb.append("\t\tpagePid: "+this.pageId+"\n");
+		//sb.append("\tmediaRef: "+this.mediaRef+"\n");
+				
+		return sb.toString();
 	}
 }

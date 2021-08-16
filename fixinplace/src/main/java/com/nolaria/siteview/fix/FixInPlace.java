@@ -19,8 +19,8 @@ public class FixInPlace {
 	public static FixInPlace app = new FixInPlace();
 	
 	//	Fix one file
-	public static String testInputFile = "C:/Users/markj/Documents/Personal/SiteViewer/ab-secmil.html";
-	public static String testOutputFile = "C:/Users/markj/Documents/Personal/SiteViewer/ab-secmil-fixed.html";
+	public static String testInputFile = "C:/Users/markj/Documents/Personal/SiteViewer/alberg.html";
+	public static String testOutputFile = "C:/Users/markj/Documents/Personal/SiteViewer/alberg-fixed.html";
 	
 	// Fix all files
 	public static String rootFolder = "C:/apache-tomcat-9.0.40/webapps/nolaria";
@@ -32,21 +32,26 @@ public class FixInPlace {
 	
 
 	/**
-	 * Main entry point.
+	 * Since this application isn't intended to be run in isolation (runs in Eclipse), fixes and analysis
+	 * not being performed are commented out.  Bit of hack, but expedient.
 	 * 
-	 * @param args
+	 * @param args - not used.
 	 */
 	public static void main(String[] args) {
-		//app.fixOneFile(testInputFile);		//	Just fix the specified file - used for testing.
-		app.fixAllFiles(rootFolder);			//	Fix all files starting at the root specified.
-		app.analyzeAllFiles(rootFolder);		//	Collect bug statistics starting at the root specified.
+		//app.fixOneFile(testInputFile, testOutputFile);	//	Just fix the specified file - used for testing.
+		//app.fixAllFiles(rootFolder, testOutputFile);	//	Fix all files starting at the root specified and save to test file.
+		app.fixAllFiles(rootFolder, null);			//	Fix all files starting at the root specified and save to real file.
+		//app.analyzeAllFiles(rootFolder);				//	Collect bug statistics starting at the root specified.
 	}
 
 	/**
 	 * Apply fixes to a single file.  This is mostly used for testing purposes, but could be used
 	 * for one-off fixing a specific file.
+	 * 
+	 * @param fileName - full path to the page to be fixed.
+	 * @param testOutputFile - path to output file or null if this is not a test.
 	 */
-	public void fixOneFile (String fileName) {
+	public void fixOneFile (String fileName, String testOutputFile) {
 		//	Get the file's contents.
 		String content = this.loadFile(fileName);
 		
@@ -56,20 +61,23 @@ public class FixInPlace {
 		pageName = pageName.substring(0, pageName.indexOf('.'));
 		//System.out.println("File to be fixed:  "+fileName+" - Page name: "+pageName);
 		
-		//	Fix HEADER problems.  See comments in method, below.
+		//	Fix problems.  See comments in method, below.
 		try {
-			String fixedContent = this.fixHeader(content, pageName);
+			//String fixedContent = this.fixHeader1(content, pageName);	//	Fixes 1
+			String fixedContent = this.fixHeader2(content, pageName);	//	Fixes 2
 			
 			//System.out.println("\n"+fixedContent);
 			
-			this.saveFile(fixedContent, fileName);		//	Use this one to fix for real.
-			//this.saveFile(fixedContent, testOutputFile);	//	 Use this one to test a fix.
+			//	Save out the fixed results.
+			if (testOutputFile != null)
+				this.saveFile(fixedContent, testOutputFile);	//	 Use this one to test a fix.
+			else
+				this.saveFile(fixedContent, fileName);			//	Use this one to fix for real.
 		}
 		catch (FixException fe) {
 			System.out.println("Fix Exception: "+fe.getMessage());
 		}
 		System.out.println("File got fixed: "+fileName);
-
 	}
 
 	/**
@@ -77,8 +85,8 @@ public class FixInPlace {
 	 * 
 	 * @param rootFolder
 	 */
-	public void fixAllFiles(String rootFolder) {
-		this.recursiveFixWalk(0, rootFolder);
+	public void fixAllFiles(String rootFolder, String testFileOutput) {
+		this.recursiveFixWalk(0, rootFolder, testFileOutput);
 		System.out.println("Files encountered: "+this.fileCt);
 	}
 
@@ -126,24 +134,28 @@ public class FixInPlace {
 	 * @param relTargetPath
 	 * @throws IOException
 	 */
-	public void recursiveFixWalk(int depth, String fileName) {
+	public void recursiveFixWalk(int depth, String fileName, String testFileOutput) {
 		File file = new File(fileName);
 		
-		//	Check for media folder.
+		//	Check for media folder and skip it.
 		if (file.getName().compareTo("media") == 0)
+			return;
+		
+		//	Check for a CSS file and skip it.
+		if (file.getName().indexOf(".css") == 0)
 			return;
 		
 		//	If this is a directory, recurse to lower level.
 		if (file.isDirectory()) {
 			File[] files = file.listFiles();
 			for (File newFile : files) {
-				this.recursiveFixWalk(depth+1, newFile.getPath());
+				this.recursiveFixWalk(depth+1, newFile.getPath(), testOutputFile);
 			}
 		}
 		
-		//	Otherwise, collect statistics on this file.
+		//	Otherwise, fix this file.
 		else {
-			this.fixOneFile(fileName);
+			this.fixOneFile(fileName, null);
 			this.fileCt++;
 		}
 
@@ -200,48 +212,29 @@ public class FixInPlace {
 	 * @return repaired content
 	 * @throws FixException if HEADER is not found, which implies an already fixed file.
 	 */
-	public String fixHeader(String content, String pageName) throws FixException{
-		String title = null;	//	The page title.
-		String name = null;		//	The page name.
-		String pid = null;		//	The page identifier (UUID).
-		
+	public String fixHeader1(String content, String pageName) throws FixException{
 		int endHeaderIndex = content.indexOf("</header>");
 		if (endHeaderIndex == -1) {
 			throw new FixException("Unable to find the closing HEADER element on page:"+pageName);
 		}
 		
-		//	Extract the header block.
+		//	Extract the header block and get page information.
 		String headerBlock = content.substring(0, endHeaderIndex);
+		PageInfo info = this.getHeaderInfo(headerBlock);
 		
-		//  Extract the title.
-		int startTitleOffset = headerBlock.indexOf("<title>");
-		int endTitleOffset = headerBlock.indexOf("</title>", startTitleOffset+1);
-		title = headerBlock.substring(startTitleOffset+"<title>".length(), endTitleOffset);
-		
-		//	Extract the name.
-		String nameStart = "name=\"name\" content=\"";
-		int startNameOffset = headerBlock.indexOf(nameStart);
-		int endNameOffset = headerBlock.indexOf("\"", startNameOffset+nameStart.length());
-		name = headerBlock.substring(startNameOffset+nameStart.length(), endNameOffset);
-		
-		//	Extract the page identifier.
-		String idStart = "name=\"pid\" content=\"";
-		int startPidOffset = headerBlock.indexOf(idStart);
-		int endPidOffset = headerBlock.indexOf("\"", startPidOffset+idStart.length());
-		pid = headerBlock.substring(startPidOffset+idStart.length(), endPidOffset);
 		
 		//System.out.println("Title: "+title);
 		//System.out.println("Name: "+name);
 		//System.out.println("PID: "+pid);
 		
 		//	Test for the single letter case and correct if detected.
-		if (title.length() == 1) {
-			title = pageName.replace("-", " ");
+		if (info.title.length() == 1) {
+			info.title = pageName.replace("-", " ");
 			
 			//	Capitalize the title.  More involved that it should be.
-			if (title.length() > 2) {
+			if (info.title.length() > 2) {
 				StringBuffer newTitle = new StringBuffer();
-				String[] parts = title.split(" ");
+				String[] parts = info.title.split(" ");
 				
 				
 
@@ -251,11 +244,11 @@ public class FixInPlace {
 						part = caps.substring(0, 1) + part.substring(1, part.length());
 					newTitle.append(part+" ");
 				}
-				title = newTitle.toString().trim();
-				System.out.println("Fixed title capitalized:  "+title);
+				info.title = newTitle.toString().trim();
+				System.out.println("Fixed title capitalized:  "+info.title);
 			}
 			else {
-				title = title.toUpperCase();
+				info.title = info.title.toUpperCase();
 			}
 		}
 		
@@ -265,10 +258,10 @@ public class FixInPlace {
 		fixedHeader.append("<html lang=\"en-us\">\n");
 		fixedHeader.append("<head>\n");
 		fixedHeader.append("\t<link rel=\"stylesheet\" href=\"file:///C:/Web/green.css\">\n");
-		fixedHeader.append("\t<title>"+title+"</title>\n");
-		fixedHeader.append("\t<meta name=\"title\" content=\""+title+"\" />\n");
-		fixedHeader.append("\t<meta name=\"name\" content=\""+name+"\" />\n");
-		fixedHeader.append("\t<meta name=\"pid\" content=\""+pid+"\" />\n");
+		fixedHeader.append("\t<title>"+info.title+"</title>\n");
+		fixedHeader.append("\t<meta name=\"title\" content=\""+info.title+"\" />\n");
+		fixedHeader.append("\t<meta name=\"name\" content=\""+info.name+"\" />\n");
+		fixedHeader.append("\t<meta name=\"pid\" content=\""+info.pid+"\" />\n");
 		fixedHeader.append("</head>\n");
 		
 		// System.out.println("\n"+fixedHeader.toString());
@@ -292,10 +285,63 @@ public class FixInPlace {
 		
 		StringBuffer fixedContent = new StringBuffer(fixedHeader);
 		fixedContent.append("<body>\n");
-		fixedContent.append("<h1>"+title+"</h1>");
+		fixedContent.append("<h1>"+info.title+"</h1>");
 		fixedContent.append(contentRemainder);
 				
 		return fixedContent.toString();
+	}
+	
+	/**
+	 * This assumes that fixHeader1 has already been run and )that HEADER has been converted to HEAD.
+	 * The following is fixed:
+	 * 
+	 * 	-	Change style sheet link to http://localhost:8080/nolaria/green.css
+	 * 	-	Add meta tags to prevent caching of page.
+	 * 
+	 * @param content of this web page
+	 * @param pageName - file name with no path
+	 * @return repaired content
+	 * @throws FixException if HEAD is not found, which implies an already fixed file.
+	 */
+	public String fixHeader2(String content, String pageName) throws FixException{
+		int endHeaderIndex = content.indexOf("</head>");
+		if (endHeaderIndex == -1) {
+			throw new FixException("Unable to find the closing HEAD element on page:"+pageName);
+		}
+		
+		//	Extract the header block and get page information.
+		String headerBlock = content.substring(0, endHeaderIndex);
+		PageInfo info = this.getHeaderInfo(headerBlock);
+		
+		//System.out.println("Title: "+info.title);
+		//System.out.println("Name: "+info.name);
+		//System.out.println("PID: "+info.pid);
+				
+		//	Create fixed header block.
+		StringBuffer fixedHeader = new StringBuffer();
+		fixedHeader.append("<!DOCTYPE html>\n");
+		fixedHeader.append("<html lang=\"en-us\">\n");
+		fixedHeader.append("<head>\n");
+		fixedHeader.append("\t<link rel=\"stylesheet\" href=\"http://localhost:8080/nolaria/green.css\">\n");
+		fixedHeader.append("\t<title>"+info.title+"</title>\n");
+		fixedHeader.append("\t<meta name=\"title\" content=\""+info.title+"\" />\n");
+		fixedHeader.append("\t<meta name=\"name\" content=\""+info.name+"\" />\n");
+		fixedHeader.append("\t<meta name=\"pid\" content=\""+info.pid+"\" />\n");
+
+		fixedHeader.append("\t<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n");
+		fixedHeader.append("\t<meta http-equiv=\"Pragma\" content=\"no-cache\" />\n");
+		fixedHeader.append("\t<meta http-equiv=\"Expires\" content=\"0\" />\n");
+
+		fixedHeader.append("</head>\n");
+		
+		// System.out.println("\n"+fixedHeader.toString());
+		
+		String contentRemainder = null;
+		int startOff = content.indexOf("<body>");
+		
+		contentRemainder = content.substring(startOff, content.length());
+						
+		return fixedHeader+contentRemainder;
 	}
 	
 	/**
@@ -352,6 +398,41 @@ public class FixInPlace {
 	 *		UTILITY METHODS	
 	 ****************************************************************************/
 
+	/**
+	 * This utility method takes the header block of content and extracts key page data including:
+	 * 
+	 * 	-	Title
+	 * 	-	Name
+	 * 	-	PID (page identifier)
+	 * 
+	 * @param headerBlock
+	 * @return PageInfo object
+	 */
+	public PageInfo getHeaderInfo(String headerBlock) {
+		String title = null;	//	The page title.
+		String name = null;		//	The page name.
+		String pid = null;		//	The page identifier (UUID).
+				
+		//  Extract the title.
+		int startTitleOffset = headerBlock.indexOf("<title>");
+		int endTitleOffset = headerBlock.indexOf("</title>", startTitleOffset+1);
+		title = headerBlock.substring(startTitleOffset+"<title>".length(), endTitleOffset);
+		
+		//	Extract the name.
+		String nameStart = "name=\"name\" content=\"";
+		int startNameOffset = headerBlock.indexOf(nameStart);
+		int endNameOffset = headerBlock.indexOf("\"", startNameOffset+nameStart.length());
+		name = headerBlock.substring(startNameOffset+nameStart.length(), endNameOffset);
+		
+		//	Extract the page identifier.
+		String idStart = "name=\"pid\" content=\"";
+		int startPidOffset = headerBlock.indexOf(idStart);
+		int endPidOffset = headerBlock.indexOf("\"", startPidOffset+idStart.length());
+		pid = headerBlock.substring(startPidOffset+idStart.length(), endPidOffset);
+		
+		return new PageInfo(title,name,pid);		
+	}
+	
 	/**
 	 * Load the file given by fileName and return it as a String.
 	 * 

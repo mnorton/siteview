@@ -9,6 +9,7 @@ import java.lang.Exception;
  *
  */
 public class FixException extends Exception {
+	private static final long serialVersionUID = 6407241884286331135L;
 
 	public FixException() {
 		// TODO Auto-generated constructor stub

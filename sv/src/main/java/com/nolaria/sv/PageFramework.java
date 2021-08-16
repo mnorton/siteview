@@ -4,11 +4,14 @@
 package com.nolaria.sv;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.util.HashMap;
 import java.util.TreeMap;
 import java.util.UUID;
+
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * The Page Framework is the base class of the Site Viewer app. It is
@@ -31,26 +34,26 @@ public class PageFramework {
 	public static String FILE_ROOT = "C:\\apache-tomcat-9.0.40\\webapps\\"+SITE_NODE+"\\";
 
 	public Page page = null;		//	The page referenced.
+	public String site = SITE_NODE;	//	Default to the static site node.
+	public HttpServletRequest request = null;
 	public static Logger logger = System.getLogger("sv");
 
 	/**
-	 * Constructor given a page reference.
+	 * Constructor given the HTTP request.
 	 * 
-	 * @param ref
+	 * @param request
 	 */
-	public PageFramework(String site, String ref) {
+	public PageFramework(HttpServletRequest request) {
 		// this.ref = ref;
+		this.request = request;
+		String ref = (String)request.getParameter("ref");
+		this.site = (String)request.getParameter("site");
 
-		//	Add the site name to file root.
-		if (site == null) site="norberg3";
-		//if (FILE_ROOT.indexOf(site) == -1)
-		//	PageFramework.FILE_ROOT += site+"\\";
-		
 		System.out.println("File Root: "+FILE_ROOT);
 		
 		// Create a page model.
 		this.page = new Page(ref);
-		PageFramework.logger.log(Level.INFO, "Requested Page Reference: " + this.page.getRef());
+		System.out.println("Requested Page Reference: " + this.page.getRef());
 	}
 
 	/**
@@ -68,16 +71,42 @@ public class PageFramework {
 	 * @return content of the banner pane.
 	 */
 	public String getBanner() {
-		StringBuffer sb = new StringBuffer();
-
-		sb.append(
-				"<a href=\"/"+SITE_NODE+"/home.html\"><img float=\"left\" src=\"/"+SITE_NODE+"/media/customLogo.gif\" width=\"500\"/></a>\n");
-		//sb.append("&nbsp;&nbsp;&nbsp;&nbsp;\n");
-		sb.append("<br>\n");
-		//sb.append("<span style=\"font-size: 16pt\"><b>" + this.page.getPageTitle() + "</b></span><br><br><br>\n");
+		//	Page debugging info.
+		if (this.page == null)
+			System.out.println("Page was not initialized when creating banner content.");
+		else
+			System.out.println(this.page.toString());
 		
-		//	This version shows the full file path, that can be used for editing.
-		sb.append("<span style=\"font-size: 16pt\"><b>" + this.page.getFullPath() + "</b></span><br><br><br>\n");
+		StringBuffer sb = new StringBuffer();
+		
+		//	Check for a new page request.
+		String newTitle = this.request.getParameter("new-title");
+		String ref = this.request.getParameter("ref");
+		if ( (newTitle != null) && (newTitle.length() > 0) )
+			this.createNewPage(ref, newTitle);
+
+		//	Add the banner logo.
+		sb.append(
+				"\t<a href=\"/"+SITE_NODE+"/home.html\"><img float=\"left\" src=\"/"+SITE_NODE+"/media/customLogo.gif\" width=\"500\"/></a>\n");
+		//sb.append("&nbsp;&nbsp;&nbsp;&nbsp;\n");
+		sb.append("\t<br>\n");
+		
+		//	Shows the full file path, that can be used for editing.
+		//sb.append("<span style=\"font-size: 16pt\"><b>" + this.page.getPageTitle() + "</b></span><br><br><br>\n");
+		sb.append("\t<div style=\"font-size: 12pt\"><b>" + this.page.getFullPath() + "</b></div><br>\n");
+		
+		//	New Page Form.
+		Page currentPage = this.getPage();
+		String currentRef = currentPage.getRef();
+		sb.append("\t<div>\n");
+		sb.append("\t<form id=\"new-page-form\" method=\"get\" action=\"/sv\">\n");
+		sb.append("\t\t<input type=\"hidden\" name=\"ref\"value=\""+currentRef+"\">\n");
+		//sb.append("\t\t<input type=“submit” value=”New Page” >&nbsp;&nbsp;\n");
+		sb.append("\t\t<span style=\\\"color: yellow;\\\"><button type=\"submit\" form=\"new-page-form\">New Page</button></span>&nbsp;&nbsp;\n");
+		sb.append("\t\t<label for=\"new-title\">Title:</label>\n");
+		sb.append("\t\t<input type=\"text\" id=\"new-title\" name=\"new-title\">\n");
+		sb.append("\t</form>\n");
+		sb.append("\t</div><br>\n");
 
 		return sb.toString();
 	}
@@ -90,7 +119,7 @@ public class PageFramework {
 	 * @return content text
 	 */
 	public String getContent() {
-		return this.page.getContent();
+		return this.page.getIFrame();
 	}
 
 	
@@ -326,7 +355,7 @@ public class PageFramework {
 		//	Iterate over all files in this directory and sort them into maps.
 		for (File f: files) {
 			String name = f.getName();
-			
+						
 			//	See if this file is a directory.
 			if (f.isDirectory()) {
 				//PageFramework.logger.log(Level.INFO, "Directory name added to list: " +name);
@@ -339,11 +368,16 @@ public class PageFramework {
 			}
 		}
 		
+		//	Iterate over the files and generate navigation content.
 		for (File f: files) {
 			String name = f.getName();
 			String relFilePath = this.extractRelativePath(f.getPath());		//	Includes /sv/ at the start.
 			relFilePath = relFilePath.replaceAll("\\\\", "/");
-			
+
+			//	Check for and skip sytle sheets.
+			if (name.indexOf(".css") >= 0)
+				continue;
+
 			//	This id is used for the drop down controls.  Using page names led to duplicate ids that prevented some folders from dropping down.
 			String randId = UUID.randomUUID().toString();
 			
@@ -477,29 +511,87 @@ public class PageFramework {
 	}
 
 	/**
+	 * Get the page name from the referenced page.
+	 * This is used in index.jsp
 	 * 
-	 * @return page reference.
+	 * @return page name
 	 */
-	public String getRef() { 
-		return this.page.getRef();
-		}
-
+	public String getPageName() {
+		return this.page.getPageName();
+	}
+	
 	/**
+	 * Get the page title from the referenced page.
+	 * This is used in index.jsp
 	 * 
-	 * @return page name.
-	 */
-	public String getPageName() { 
-		return this.page.getPageName(); 
-		}
-
-	/**
-	 * 
-	 * @return page title.
+	 * @return page title
 	 */
 	public String getPageTitle() {
 		return this.page.getPageTitle();
 	}
 
+	/************************************************************************
+	 *                   Request Processors                                 *
+	 ***********************************************************************/
+
+	/**
+	 * Create a new page from the title passed in the directory specified by ref.
+	 * 
+	 * @param ref - directory path
+	 * @param newTitle - title of the new page.
+	 */
+	public void createNewPage(String ref, String newTitle) {
+		String name = newTitle.replaceAll(" ", "-").toLowerCase();
+		String pid = UUID.randomUUID().toString();
+		
+		System.out.println("Create a page called: "+newTitle+" in a name of: "+name+" with a PID of: "+pid);
+		
+		//	Create the HTML content of the new page.
+		StringBuffer content = new StringBuffer();
+		content.append("<!DOCTYPE html>\n");
+		content.append("<html lang=\"en-us\">\n");
+		
+		//	Add HEAD content.
+		content.append("<head>\n");
+		content.append("\t<link rel=\"stylesheet\" href=\"http://localhost:8080/nolaria/green.css\">\n");
+		content.append("\t<title>"+newTitle+"</title>\n");
+		content.append("\t<meta name=\"title\" content=\""+newTitle+"\" />\n");
+		content.append("\t<meta name=\"name\" content=\""+name+"\" />\n");
+		content.append("\t<meta name=\"pid\" content=\""+pid+"\" />\n");
+
+		content.append("\t<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n");
+		content.append("\t<meta http-equiv=\"Pragma\" content=\"no-cache\" />\n");
+		content.append("\t<meta http-equiv=\"Expires\" content=\"0\" />\n");
+		content.append("</head>\n");
+
+		//	Add BODY content.
+		content.append("<body>\n");
+		content.append("\t<h1>"+newTitle+"</h1>\n");
+		content.append("</body>\n");
+
+		content.append("</html>\n");
+		
+		//	Extract the path part of the page reference.
+		int extentionOffest = ref.indexOf(".html");
+		String path = "";
+		if (extentionOffest != -1)
+			path = ref.substring(0, extentionOffest);
+		
+		//	Make a folder to how the new page, if needed>
+		String dirName = FILE_ROOT+path;
+		File dirFile = new File(dirName);
+		if (!dirFile.exists()) {
+			if (dirFile.mkdir() == true)
+				System.out.println("Created a directory called: "+dirFile);
+		}
+		
+		//	Save the contents out to the new page file.
+		String fileName = FILE_ROOT+path+"/"+name+".html";
+		//System.out.println("Save new contents to: "+fileName);
+		this.saveFile(content.toString(), fileName);	
+	}
+
+	
 	/************************************************************************
 	 *                   Utility Methods                                    *
 	 ***********************************************************************/
@@ -533,5 +625,38 @@ public class PageFramework {
 	private String extractRelativePath (String path) {
 		return path.substring(FILE_ROOT.length());
 	}
+	
+	/**
+	 * Save the contents passed to the file named.
+	 * 
+	 * @param contents
+	 * @param fileName
+	 */
+	public void saveFile (String contents, String fileName) {
+		FileOutputStream out = null;
+		try {
+			out = new FileOutputStream (fileName);
+
+			for (int i=0; i<contents.length(); i++) {
+				int datum = (int)contents.charAt(i);
+				out.write(datum);				
+			}
+		}
+		catch (IOException io) {
+			System.out.println ("Exception when saving file: "+fileName);
+			System.out.println (io.getMessage());
+			System.out.println (io.getCause());			
+		}
+		finally {
+			try {
+				if (out != null)
+					out.close();
+			}
+			catch (IOException close) {
+				System.out.println ("Error on closing file: "+fileName);
+			}
+		}		
+	}
+
 
 }

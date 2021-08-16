@@ -4,26 +4,23 @@
 	<%
 	   String ref = request.getParameter("ref");
 	   String site = request.getParameter("site");
-	   PageFramework framework = new PageFramework(site, ref);
+	   PageFramework framework = new PageFramework(request);
 	   
 	   String name = framework.getPageName();
 	   name = name.substring(0, name.indexOf("."));
 	   String title = framework.getPageTitle();
 	%>
 
+	<!--<link rel="stylesheet" href="/nolaria/nolaria.css">-->
+	<link rel="stylesheet" href="http://localhost:8080/nolaria/green.css">
+
 	<title><%= name %></title>
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+	<meta http-equiv="Pragma" content="no-cache" />
+	<meta http-equiv="Expires" content="0" />
 	<meta name="title" content="<%= name %>" />
 	<meta name="name" content="<%= name %>" />
 	
-	<link rel="stylesheet" href="/nolaria/nolaria.css">
-	<!--
-	<style>
-		body {
-			color: black;
-			font-family: Arial;
-		}
-	</style>
-	-->
 
 </header>
 <body>
