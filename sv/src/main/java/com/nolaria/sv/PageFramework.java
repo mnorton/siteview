@@ -31,8 +31,9 @@ public class PageFramework {
 	public static int NAV_LINES = 100;
 	public static int MAX_NAV_DEPTH = 100;
 	public static String SITE_NODE = "nolaria";
-	public static String FILE_ROOT = "C:\\apache-tomcat-9.0.40\\webapps\\"+SITE_NODE+"\\";
-
+	//public String FILE_ROOT = "C:\\apache-tomcat-9.0.40\\webapps\\"+SITE_NODE+"\\";
+	
+	public String FileRoot = null;
 	public Page page = null;		//	The page referenced.
 	public String site = SITE_NODE;	//	Default to the static site node.
 	public HttpServletRequest request = null;
@@ -43,16 +44,25 @@ public class PageFramework {
 	 * 
 	 * @param request
 	 */
-	public PageFramework(HttpServletRequest request) {
+	public PageFramework(HttpServletRequest request) throws Exception {
 		// this.ref = ref;
+		
+		//	Initialize the file root to CATALINA_HOME plus webapps plus SITE_NODE
+		String catalinaHome = System.getenv().get("CATALINA_HOME");
+		if (catalinaHome != null)
+			this.FileRoot = catalinaHome + "/webapps/" + SITE_NODE + "/";
+		else
+			throw new Exception("Unable to find the CATALINA_HOME environment variable.");
+		
+		//	Extract base information from the request.
 		this.request = request;
 		String ref = (String)request.getParameter("ref");
 		this.site = (String)request.getParameter("site");
 
-		System.out.println("File Root: "+FILE_ROOT);
+		System.out.println("File Root: "+this.FileRoot);
 		
 		// Create a page model.
-		this.page = new Page(ref);
+		this.page = new Page(ref, this.FileRoot);
 		System.out.println("Requested Page Reference: " + this.page.getRef());
 	}
 
@@ -150,9 +160,9 @@ public class PageFramework {
 		String dirPath = null;
 		String relPath = this.page.getRelPath();
 		if (relPath.length() > 0)
-			dirPath = FILE_ROOT + relPath;
+			dirPath = this.FileRoot + relPath;
 		else
-			dirPath = FILE_ROOT;
+			dirPath = this.FileRoot;
 		File dirFile = new File(dirPath);
 
 		// Check for no files in this directory.
@@ -181,7 +191,7 @@ public class PageFramework {
 					String subPath = sf.getPath();
 
 					// Extract root and pages node to get relative sub-path.
-					String subRelPath = subPath.substring(FILE_ROOT.length(),
+					String subRelPath = subPath.substring(this.FileRoot.length(),
 							subPath.indexOf(subName) - 1);
 					subRelPath = subRelPath.replace("\\", SLASH) + SLASH; // Escape the back slashes.
 
@@ -248,7 +258,7 @@ public class PageFramework {
 		//PageFramework.logger.log(Level.INFO, "Level: " + level + ", Rel Path:  ["+relPath+"]");
 		
 		//	Convert relative path to a full path.
-		String dirPath = FILE_ROOT + relPath;
+		String dirPath = this.FileRoot + relPath;
 		File dirFile = new File(dirPath);
 		
 		// Check for no files in this directory.
@@ -338,7 +348,7 @@ public class PageFramework {
 		String[] relParts = this.page.relPath.split("/");
 		
 		//	Convert relative path to a full path.
-		String dirPath = FILE_ROOT + relPath;
+		String dirPath = this.FileRoot + relPath;
 		File dirFile = new File(dirPath);
 		
 		// Check for no files in this directory.
@@ -450,9 +460,9 @@ public class PageFramework {
 		String dirPath = null;
 		String relPath = this.page.getRelPath();
 		if (relPath.length() > 0)
-			dirPath = FILE_ROOT + relPath;
+			dirPath = this.FileRoot + relPath;
 		else
-			dirPath = FILE_ROOT;
+			dirPath = this.FileRoot;
 		File dirFile = new File(dirPath);
 
 		// this.logger.log(Level.INFO,"Navigation from directory: "+dirPath);
@@ -482,7 +492,7 @@ public class PageFramework {
 					String subPath = sf.getPath();
 
 					// Extract root and pages node to get relative sub-path.
-					String subRelPath = subPath.substring(FILE_ROOT.length(),
+					String subRelPath = subPath.substring(this.FileRoot.length(),
 							subPath.indexOf(subName) - 1);
 					// subRelPath =subRelPath.replace("/", SLASH) + SLASH; // Escape the slashes.
 					subRelPath = subRelPath.replace("\\", SLASH) + SLASH; // Escape the back slashes.
@@ -578,7 +588,7 @@ public class PageFramework {
 			path = ref.substring(0, extentionOffest);
 		
 		//	Make a folder to how the new page, if needed>
-		String dirName = FILE_ROOT+path;
+		String dirName = this.FileRoot+path;
 		File dirFile = new File(dirName);
 		if (!dirFile.exists()) {
 			if (dirFile.mkdir() == true)
@@ -586,7 +596,7 @@ public class PageFramework {
 		}
 		
 		//	Save the contents out to the new page file.
-		String fileName = FILE_ROOT+path+"/"+name+".html";
+		String fileName = this.FileRoot+path+"/"+name+".html";
 		//System.out.println("Save new contents to: "+fileName);
 		this.saveFile(content.toString(), fileName);	
 	}
@@ -623,7 +633,7 @@ public class PageFramework {
 	 * @return relative path
 	 */
 	private String extractRelativePath (String path) {
-		return path.substring(FILE_ROOT.length());
+		return path.substring(this.FileRoot.length());
 	}
 	
 	/**
