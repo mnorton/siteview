@@ -191,7 +191,7 @@ public class Page {
 	 */
 	public String getIFrame() {
 		//	This is the mark-up that puts an iFrame into the content pane.
-		return "\t<iframe src=\"/"+PageFramework.SITE_NODE+"/"+this.ref+"\" title=\""+this.pageTitle+"\"></iframe>\n";	
+		return "\t<iframe src=\"/"+this.Site+"/"+this.ref+"\" title=\""+this.pageTitle+"\"></iframe>\n";	
 	}
 	
 	/**
