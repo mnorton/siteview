@@ -58,11 +58,13 @@ public class PageFramework {
 		this.request = request;
 		String ref = (String)request.getParameter("ref");
 		this.site = (String)request.getParameter("site");
+		if (this.site == null)
+			this.site = PageFramework.SITE_NODE;
 
-		System.out.println("File Root: "+this.FileRoot);
+		System.out.println("File Root: "+this.FileRoot+", Site:  "+this.site);
 		
 		// Create a page model.
-		this.page = new Page(ref, this.FileRoot);
+		this.page = new Page(ref, this.FileRoot, this.site);
 		System.out.println("Requested Page Reference: " + this.page.getRef());
 	}
 
@@ -115,7 +117,16 @@ public class PageFramework {
 		sb.append("\t\t<span style=\\\"color: yellow;\\\"><button type=\"submit\" form=\"new-page-form\">New Page</button></span>&nbsp;&nbsp;\n");
 		sb.append("\t\t<label for=\"new-title\">Title:</label>\n");
 		sb.append("\t\t<input type=\"text\" id=\"new-title\" name=\"new-title\">\n");
+
+		sb.append("\t<a target=\"_blank\" href=\"" + this.page.getUrl() + "\"/>\n");
+		sb.append("\t\t<button type=\"button\">\n");
+		sb.append("\t\t\tPrint\n");
+		sb.append("\t\t</button>\n");
+		sb.append("\t</a>\n");
+
 		sb.append("\t</form>\n");
+		
+		
 		sb.append("\t</div><br>\n");
 
 		return sb.toString();

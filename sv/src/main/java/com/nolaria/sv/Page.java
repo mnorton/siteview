@@ -21,6 +21,7 @@ import com.nolaria.sv.PageFramework.FileType;
  */
 public class Page {	
 	String FileRoot = null;			//	The root file path to the site.
+	String Site = null;				//	The site path node.
 	String ref = "";				//	Full reference to this page: relative path and page name.
 	String relPath = "";			//	The relative path
 	String[] relPathNodes = null;	//	The list of directory nodes in the relative path.  Page name is not included.
@@ -42,12 +43,14 @@ public class Page {
 	 * 
 	 * @param ref
 	 */
-	public Page(String ref, String root) {
+	public Page(String ref, String root, String site) {
 		//	Save the page reference.
 		this.FileRoot = root;
 		if (ref != null) {
 			this.ref = ref;
 		}
+		
+		this.Site = site;
 		
 		// Extract page name.
 		String[] nodes = ref.split("/");
@@ -183,13 +186,21 @@ public class Page {
 	}
 	
 	/**
-	 * Get HTML markup to embed this page in an iFrame.
-	 * @return iFrame markup
+	 * Get HTML mark-up to embed this page in an iFrame.
+	 * @return iFrame mark-up
 	 */
 	public String getIFrame() {
-		//	This is the markup that puts an iFrame into the content pane.
-		return "\t<iframe src=\"/"+PageFramework.SITE_NODE+"/"+this.ref+"\" title=\""+this.pageTitle+"\"></iframe>\n";
-		
+		//	This is the mark-up that puts an iFrame into the content pane.
+		return "\t<iframe src=\"/"+PageFramework.SITE_NODE+"/"+this.ref+"\" title=\""+this.pageTitle+"\"></iframe>\n";	
+	}
+	
+	/**
+	 * Get the URL for this page.
+	 * 
+	 * @return  URL for this page
+	 */
+	public String getUrl() {
+		return "http://localhost:8080/"+this.Site+"/"+this.ref;
 	}
 
 	
