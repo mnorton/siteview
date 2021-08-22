@@ -127,32 +127,9 @@ public class Page {
 	 * @return page title.
 	 */
 	public String getPageTitle() {
-		/*	This approach is out of date
-		if (this.pageTitle == null) {
-			String contents = this.getContent();
-			int offset = contents.indexOf("svTitle=\"");
-			
-			//  Check for title not found and default to page name.
-			if (offset == -1) {
-				this.pageTitle = this.pageName;
-				//this.pageTitle = "UNKNOWN";
-				return this.pageTitle;
-			}
-			else {
-				//	Extract the page title using MAX_TITLE_LENGTH as a safety boundary.
-				offset += "svTitle=\"".length();	//	Advance past the attribute.
-
-				StringBuffer sb = new StringBuffer();
-				for (int i=offset; i<offset+PageFramework.MAX_TITLE_LENGTH; i++) {
-					if (contents.charAt(i) == '"')
-						break;
-					else
-						sb.append(contents.charAt(i));
-				}
-				this.pageTitle=sb.toString();
-				PageFramework.logger.log(Level.INFO, "Page title found: "+this.pageTitle);
-			}	
-		}  */
+		//	Return the cached title if present.
+		if (this.pageTitle != null)
+			return pageTitle;
 		
 		//	If there is no page title, then create one from the page name.
 		if (this.pageTitle == null) {
@@ -169,7 +146,7 @@ public class Page {
 	 * @return
 	 */
 	public String getPageId() {
-		return this.getPageId();
+		return this.pageId;
 	}
 
 	/**
@@ -372,9 +349,9 @@ public class Page {
 		sb.append("\t\trelPath: "+this.relPath+"\n");
 		//sb.append("\t\trelPathNodes: "+this.relPathNodes.toString()+"\n");
 		sb.append("\tMeta Data: "+"\n");
-		sb.append("\t\tpageName: "+this.pageName+"\n");
-		sb.append("\t\tpageTitle: "+this.pageTitle+"\n");
-		sb.append("\t\tpagePid: "+this.pageId+"\n");
+		sb.append("\t\tpageName: "+this.getPageName()+"\n");
+		sb.append("\t\tpageTitle: "+this.getPageTitle()+"\n");
+		sb.append("\t\tpagePid: "+this.getPageId()+"\n");
 		//sb.append("\tmediaRef: "+this.mediaRef+"\n");
 				
 		return sb.toString();

@@ -65,7 +65,8 @@ public class PageFramework {
 		
 		// Create a page model.
 		this.page = new Page(ref, this.FileRoot, this.site);
-		System.out.println("Requested Page Reference: " + this.page.getRef());
+		//System.out.println("Requested Page Reference: " + this.page.getRef());
+		//System.out.println("Page Title: "+this.page.getPageTitle());
 	}
 
 	/**
@@ -114,13 +115,13 @@ public class PageFramework {
 		sb.append("\t<form id=\"new-page-form\" method=\"get\" action=\"/sv\">\n");
 		sb.append("\t\t<input type=\"hidden\" name=\"ref\"value=\""+currentRef+"\">\n");
 		//sb.append("\t\t<input type=“submit” value=”New Page” >&nbsp;&nbsp;\n");
-		sb.append("\t\t<span style=\\\"color: yellow;\\\"><button type=\"submit\" form=\"new-page-form\">New Page</button></span>&nbsp;&nbsp;\n");
-		sb.append("\t\t<label for=\"new-title\">Title:</label>\n");
+		sb.append("\t\t<span style=\\\"color: yellow;\\\"><button type=\"submit\" form=\"new-page-form\"><b>New Page</b></button></span>&nbsp;&nbsp;\n");
+		sb.append("\t\t<label for=\"new-title\"><b>Title:</b></label>\n");
 		sb.append("\t\t<input type=\"text\" id=\"new-title\" name=\"new-title\">\n");
 
-		sb.append("\t<a target=\"_blank\" href=\"" + this.page.getUrl() + "\"/>\n");
+		sb.append("\t&nbsp;&nbsp;<a target=\"_blank\" href=\"" + this.page.getUrl() + "\"/>\n");
 		sb.append("\t\t<button type=\"button\">\n");
-		sb.append("\t\t\tPrint\n");
+		sb.append("\t\t\t<b>Print</b>\n");
 		sb.append("\t\t</button>\n");
 		sb.append("\t</a>\n");
 
@@ -152,82 +153,13 @@ public class PageFramework {
 	public String getNavigation () {
 		return this.getDropNavigation();		//	Nested drop down navigation tree.
 		//return this.getFullNavigation();		//	Full navigation shows all directories and files.
-		//return this.getTwoLevelNavigation();	//  Original navigation: this level and the next.
 	}
 	
-	/**
-	 * Generate contents for navigation from the current level plus one level down.
-	 * 
-	 * @return navigation text.
-	 */
-	private String getTwoLevelNavigation() {
-		StringBuffer sb = new StringBuffer();
-
-		// Add title and link to Home.
-		sb.append("\t\t<h2>Site Navigation</h2>\n");
-		sb.append("\t<a href='/sv?ref=home.html'>Home</a><br><br>\n");
-
-		// Create the directory path and File object.
-		String dirPath = null;
-		String relPath = this.page.getRelPath();
-		if (relPath.length() > 0)
-			dirPath = this.FileRoot + relPath;
-		else
-			dirPath = this.FileRoot;
-		File dirFile = new File(dirPath);
-
-		// Check for no files in this directory.
-		File[] files = dirFile.listFiles();
-		if (files == null || files.length == 0) {
-			//sb.append("No files in path: " + dirPath + ".<br>");
-			sb.append("No files here.<br>\n");
-			return sb.toString();
-		}
-
-		// Scan files in this directory.
-		for (File f : files) {
-			String name = f.getName();
-			if (name == null)
-				name = "UNKONWN";
-			if (f.isDirectory()) {
-				// Show directory files.
-				sb.append("\t\t" + name + ":<br>\n");
-				File[] subFiles = f.listFiles();
-
-				// Show files in sub directory.
-				for (File sf : subFiles) {
-					String subName = sf.getName();
-
-					// This will be the full path.
-					String subPath = sf.getPath();
-
-					// Extract root and pages node to get relative sub-path.
-					String subRelPath = subPath.substring(this.FileRoot.length(),
-							subPath.indexOf(subName) - 1);
-					subRelPath = subRelPath.replace("\\", SLASH) + SLASH; // Escape the back slashes.
-
-					if (subName == null)
-						subName = "UNKNOWN";
-					if (sf.isDirectory()) {
-						sb.append("\t\t&nbsp;&nbsp;&nbsp;&nbsp;" + subName + ":<br>\n");
-					} else {
-						if (subName.contains(".html")) {
-							sb.append("\t\t&nbsp;&nbsp;&nbsp;&nbsp;<a href='/sv?ref=" + subRelPath + subName + "'>"
-									+ subName + "</a><br>\n");
-						}
-					}
-				}
-			} else {
-				// Show this file.
-				sb.append("\t<a href='/sv?ref=" + name + "'>" + name + "</a><br>\n");
-			}
-		}
-
-		return sb.toString();
-	}
 
 	/**
 	 * Get the text for full navigation.  This shows all directories starting from the root, indented by level.
+	 * This version of navigation has no drop down controls.  Rather, it shows the entire list of files.
+	 * Keeping this because it might be useful in the future.
 	 * 
 	 * @return full navigation text.
 	 */
@@ -453,83 +385,6 @@ public class PageFramework {
 		}
 	}
 	
-	//  TODO:  remove this once confidence in navigation is restored.
-	private String getNavigationOld() {
-		StringBuffer sb = new StringBuffer();
-
-		// String[] parts = this.ref.split("\\/");
-
-		// Add title and link to Home.
-		sb.append("\t\t<h2>Site Navigation</h2>\n");
-		// sb.append("\tXX ref: "+this.ref+"<br>\n");
-		// sb.append("\tXX split ref ct: "+parts.length+"<br>\n");
-		// sb.append("\tXX relPath: "+this.relPath+"<br>\n");
-		// sb.append("\tXX ===============<br><br>\n");
-		sb.append("\t<a href='/sv?ref=home.html'>Home</a><br><br>\n");
-
-		// Create File objects.
-		String dirPath = null;
-		String relPath = this.page.getRelPath();
-		if (relPath.length() > 0)
-			dirPath = this.FileRoot + relPath;
-		else
-			dirPath = this.FileRoot;
-		File dirFile = new File(dirPath);
-
-		// this.logger.log(Level.INFO,"Navigation from directory: "+dirPath);
-		// sb.append("\tXX dirPath: "+dirPath+"<br><br>\n");
-
-		// Scan files in this directory.
-		File[] files = dirFile.listFiles();
-		if (files == null || files.length == 0) {
-			sb.append("No files in path: " + dirPath + ".<br>");
-			return sb.toString();
-		}
-		for (File f : files) {
-			String name = f.getName();
-			if (name == null)
-				name = "UNKONWN";
-			if (f.isDirectory()) {
-				// Show directory files.
-				sb.append("\t\t" + name + ":<br>\n");
-				File[] subFiles = f.listFiles();
-				// sb.append("\tDirectory Files: "+subFiles.length+"<br>\n");
-
-				// Show files in sub directory.
-				for (File sf : subFiles) {
-					String subName = sf.getName();
-
-					// This will be the full path.
-					String subPath = sf.getPath();
-
-					// Extract root and pages node to get relative sub-path.
-					String subRelPath = subPath.substring(this.FileRoot.length(),
-							subPath.indexOf(subName) - 1);
-					// subRelPath =subRelPath.replace("/", SLASH) + SLASH; // Escape the slashes.
-					subRelPath = subRelPath.replace("\\", SLASH) + SLASH; // Escape the back slashes.
-
-					if (subName == null)
-						subName = "UNKNOWN";
-					if (sf.isDirectory()) {
-						sb.append("\t\t&nbsp;&nbsp;&nbsp;&nbsp;" + subName + ":<br>\n");
-					} else {
-						// sb.append("\t\t&nbsp;&nbsp;&nbsp;&nbsp;Sub File: "+subName+" -
-						// "+this.getFileType(subName)+"<br>\n");
-						if (subName.contains(".html")) {
-							sb.append("\t\t&nbsp;&nbsp;&nbsp;&nbsp;<a href='/sv?ref=" + subRelPath + subName + "'>"
-									+ subName + "</a><br>\n");
-						}
-					}
-				}
-			} else {
-				// Show this file.
-				sb.append("\t<a href='/sv?ref=" + name + "'>" + name + "</a><br>\n");
-			}
-		}
-
-		return sb.toString();
-
-	}
 
 	/**
 	 * Get the page name from the referenced page.
