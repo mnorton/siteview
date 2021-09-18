@@ -97,9 +97,9 @@ public class PageFramework {
 		
 		
 		if (this.ref != null)
-			sb.append("\t<div style=\"font-size: 12pt\"><b>" + this.url + "</b></div><br>\n");
+			sb.append("\t<div style=\"font-size: 12pt\"><b>" + this.url + "</b></div><br><br>\n");
 		else
-			sb.append("\t<br>\n");
+			sb.append("\t<br><br>\n");
 		
 		//	New Page Form.  Keep this for the upload media form later.
 		/*

@@ -14,7 +14,7 @@
 	<!--<link rel="stylesheet" href="/nolaria/nolaria.css">-->
 	<link rel="stylesheet" href="http://localhost:8080/nolaria/green.css">
 
-	<title><%= name %></title>
+	<title>Site Viewer</title>
 	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 	<meta http-equiv="Pragma" content="no-cache" />
 	<meta http-equiv="Expires" content="0" />
