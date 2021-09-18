@@ -8,6 +8,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 /**
  * This application is a follow on to the SV Converter.  It is intended to fix any problems
@@ -23,7 +25,9 @@ public class FixInPlace {
 	public static String testOutputFile = "C:/Users/markj/Documents/Personal/SiteViewer/alberg-fixed.html";
 	
 	// Fix all files
-	public static String rootFolder = "C:/apache-tomcat-9.0.40/webapps/nolaria";
+	//public static String rootFolder = "C:/apache-tomcat-9.0.40/webapps/nolaria";
+	public static String rootFolder = "D:/apache-tomcat-9.0.40/webapps/nolaria";
+	public static String mediaFolder = "D:/apache-tomcat-9.0.40/webapps/nolaria/media/";
 	
 	//  Analysis files.
 	public static String bugDataFile = "C:/Users/markj/Documents/Personal/SiteViewer/bug-data.csv";
@@ -40,8 +44,15 @@ public class FixInPlace {
 	public static void main(String[] args) {
 		//app.fixOneFile(testInputFile, testOutputFile);	//	Just fix the specified file - used for testing.
 		//app.fixAllFiles(rootFolder, testOutputFile);	//	Fix all files starting at the root specified and save to test file.
-		app.fixAllFiles(rootFolder, null);			//	Fix all files starting at the root specified and save to real file.
+		//app.fixAllFiles(rootFolder, null);			//	Fix all files starting at the root specified and save to real file.
 		//app.analyzeAllFiles(rootFolder);				//	Collect bug statistics starting at the root specified.
+		
+		File rootFile = new File(rootFolder);
+		app.recursiveImageWalker(0, rootFile);
+		
+		//String testFileName = "D:\\apache-tomcat-9.0.40/webapps/nolaria/aurelia/uvarfestin/gunderstaad/gunderstaad-journal.html";
+		//File testFile = new File(testFileName);
+		//app.checkForMissingImages(0, testFile);
 	}
 
 	/**
@@ -185,6 +196,33 @@ public class FixInPlace {
 		//	Otherwise, collect statistics on this file.
 		else {
 			this.analyzeFile(file, sb);
+		}
+	}
+
+	/**
+	 * Recursively walk all files and identify pages with references to missing images.
+	 * 
+	 * @param depth
+	 * @param file
+	 */
+	public void recursiveImageWalker (int depth, File file) {
+		//System.out.println("File to scan:  "+file.getPath());
+		
+		//	Check for media folder.
+		if (file.getName().compareTo("media") == 0)
+			return;
+		
+		//	If this is a directory, recurse to lower level.
+		if (file.isDirectory()) {
+			File[] files = file.listFiles();
+			for (File newFile : files) {
+				this.recursiveImageWalker(depth+1, newFile);
+			}
+		}
+		
+		//	Otherwise, collect statistics on this file.
+		else {
+			this.checkForMissingImages(depth, file);
 		}
 	}
 
@@ -393,6 +431,83 @@ public class FixInPlace {
 		sb.append(filePath+","+styleBug+","+svTitleBug+","+headerBug+","+titleBug+","+classBug+","+"\n");
 		this.fileCt += 1;
 	}
+	
+	/**
+	 * Scan the file passed for IMG tags.  Check references to ensure that the image file is present in the media folder.
+	 * 
+	 * @param file
+	 */
+	public void checkForMissingImages(int depth, File file) {
+		//String tag = "<img border=\"0\" src=\"";
+		String tag = "src=\"";
+		String fileName = file.getPath();
+		int imageRefsFound = 0;
+		
+		String filePath = file.getPath();
+
+		String content = this.loadFile(filePath);
+		if (content == null) {
+			// System.out.println("Unable to load file: "+filePath);
+			return;
+		}
+
+		int contentLen = content.length();
+		int offset = 0;
+		
+		//	Scan the file contents for IMG tags.
+		while (offset <= contentLen) {
+			//System.out.println(indent(depth+1)+"Pointer at: "+offset);
+			
+			//	Look for the next (or first) IMG tag.
+			int imageLoc = content.indexOf(tag, offset);
+			if (imageLoc == -1) {
+				//System.out.println(indent(depth+1)+"Image tag was not found");
+				break;	//	Didn't find one, so we are done.
+			}
+			else {
+				imageLoc += tag.length();
+				//System.out.println(indent(depth+1) + "Found image at: "+imageLoc);
+			}
+			
+			//	Found one, so print location and refs.
+			String imageUrl = content.substring(imageLoc, content.indexOf("\"", imageLoc));
+			imageRefsFound++;
+						
+			//	Print the candidate URL.
+			//System.out.println(indent(depth+1) + "[" + imageRefsFound + "] " + imageUrl);
+			//System.out.println(indent(depth+1) +  "Length: "+imageUrl.length() + " - At Location: "+imageLoc);			
+			
+			try {
+				URL img = new URL(imageUrl);
+				
+				String imageName =img.getFile();
+				String imagePath = FixInPlace.mediaFolder;
+				File imageFile = new File(imagePath);
+				if (!imageFile.exists()) {
+					//	If this is the first image found, print the name of the file being scanned.
+					if (imageRefsFound == 1)
+						System.out.println(indent(depth)+fileName);
+
+					System.out.println(indent(depth+1) + imageName);
+				}
+				
+			}
+			catch (MalformedURLException ex) {
+				//	If this is the first image found, print the name of the file being scanned.
+				System.out.println(fileName);
+
+				if (imageUrl.length() == 0)
+					System.out.println("\tMalformed URL: Empty");
+				else
+					System.out.println("\tMalformed URL: "+imageUrl);
+			}
+						
+			offset = imageLoc + imageUrl.length() + 1;
+			//System.out.println(indent(depth+1) + "New Offset: " + offset);
+		}
+		
+	}
+	
 	
 	/****************************************************************************
 	 *		UTILITY METHODS	
