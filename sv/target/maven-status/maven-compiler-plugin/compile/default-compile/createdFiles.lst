@@ -1,8 +1,13 @@
 com\nolaria\sv\PageInfo.class
-com\nolaria\sv\Viewer.class
-com\nolaria\sv\PageFramework$FileType.class
+com\nolaria\sv\db\PageId.class
 com\nolaria\sv\PageFramework.class
+com\nolaria\sv\PageIdFramework.class
 com\nolaria\sv\SiteView.class
 com\nolaria\sv\Page.class
-com\nolaria\sv\LogHandler.class
+com\nolaria\sv\db\SiteRegistry.class
+com\nolaria\sv\db\Site.class
 com\nolaria\sv\Editor.class
+com\nolaria\sv\db\PageRegistry.class
+com\nolaria\sv\Viewer.class
+com\nolaria\sv\PageFramework$FileType.class
+com\nolaria\sv\LogHandler.class

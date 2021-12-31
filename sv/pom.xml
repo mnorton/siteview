@@ -4,7 +4,7 @@
   
   <groupId>com.nolaria</groupId>
   <artifactId>sv</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>2.0.0</version>
   <packaging>war</packaging>
   <name>sv Maven Webapp</name>
   <url>http://maven.apache.org</url>
@@ -22,6 +22,13 @@
 	    <artifactId>servlet-api</artifactId>
 	    <version>2.5</version>
 	    <scope>provided</scope>
+	</dependency>
+
+	<!-- The MariaDB driver -->
+	<dependency> 
+		<groupId>org.mariadb.jdbc</groupId>
+		<artifactId>mariadb-java-client</artifactId>
+		<version>2.7.3</version>
 	</dependency>
 
     <dependency>
