@@ -86,6 +86,7 @@ public class Register {
 	 *	TODO:  Do I want to also update changes to title and name?
 	 */
 	public void scanAndRegister(String site) throws SQLException {
+		System.out.println("\n============================ Register Pages =============================\n");
 		System.out.println("Scanning this site: "+site);
 		
 		//	Get the list of all currently registered tables.  Speeds up checks for unregistered files.
@@ -94,7 +95,7 @@ public class Register {
 		for (PageId pg : allPages) {
 			this.allPageNames.add(pg.getFile());
 		}
-		System.out.println("Pages currently registered: "+this.allPageNames.size());
+		System.out.println("Registered pages: "+this.allPageNames.size());
 		System.out.println();
 		this.failedRegistrations = new Vector<String>();
 		
@@ -103,11 +104,15 @@ public class Register {
 		
 		StringBuffer sb = new StringBuffer();
 		directoryWalker(0, "\\"+site, sb);
-		System.out.println(sb.toString());
+		//System.out.println(sb.toString());
 		
-		System.out.println("\nRegistration failures: ");
-		for (String fn : this.failedRegistrations)
-			System.out.println("\t"+fn);
+		System.out.println("Registration failures: ");
+		if (this.failedRegistrations.size() == 0) {
+			for (String fn : this.failedRegistrations)
+				System.out.println("\t"+fn);
+		}
+		else
+			System.out.println("\tnone");
 	}
 
 	/**
@@ -151,7 +156,7 @@ public class Register {
 			String name = f.getName();
 			String relFilePath = Util.extractRelativePath(f.getPath());		//	Includes /sv/ at the start.
 			relFilePath = relFilePath.replaceAll("\\\\", "/");
-			
+						
 			//	See if this file is a directory.
 			if (f.isDirectory()) {
 				if (name.compareTo("media") != 0) {
@@ -164,7 +169,7 @@ public class Register {
 			//	If not, it is a file.
 			else {				
 				//	Filter out the style sheet, if it shows up.
-				if ((name.compareTo("nolaria.css") == 0) || (name.compareTo("blue.css") == 0))
+				if ((name.compareTo("nolaria.css") == 0) || (name.compareTo("blue.css") == 0) || (name.compareTo("green.css") == 0))
 						continue;
 				
 				//	If the name is not in the directory list, then add it.
@@ -187,15 +192,33 @@ public class Register {
 	private String register(String relFilePath) {
 		String status = "???";
 		
+		//	The relPath has the site removed from it's front.
+		String relPath = relFilePath;
+		if (relPath.contains(DEFAULT_SITE)) {
+			//relFilePath.replace(DEFAULT_SITE+"/", "");
+			relPath = relPath.substring(DEFAULT_SITE.length()+1);
+			//System.out.println(DEFAULT_SITE+" removed leaving: "+relPath);
+		}
+		//else
+		//	System.out.println("Site not found in the relative path: "+relPath);
+		relPath = relPath.substring(1);
+
+		//	Remove the file name from path.
+		String path = "";
+		String parts[] = relPath.split("/");
+		if (parts.length == 0)
+			System.out.println("Rel path didn't split:  "+relPath);		
+		for (int i=0; i<parts.length-1; i++)
+			path += "/"+parts[i];
+		if (path.length() != 0)
+			path = path.substring(1);
+		//System.out.println(path);
+		
 		//	Extract the file name.
-		String parts[] = relFilePath.split("/");
+		parts = relFilePath.split("/");
 		if (parts.length == 0)
 			System.out.println("Rel file path didn't split:  "+relFilePath);		
 		String fileName = parts[parts.length-1];
-		String path = "";
-		for (int i=1; i<parts.length-1; i++)
-			path += "/"+parts[i];
-		path = path.substring(1);
 		
 		//	See if it is already registered.
 		if (this.allPageNames.contains(fileName))

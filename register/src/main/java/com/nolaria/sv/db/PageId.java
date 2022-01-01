@@ -119,11 +119,15 @@ public class PageId {
 		StringBuffer sb = new StringBuffer();
 		
 		sb.append("http://localhost:8080/");
-		sb.append(this.getSite());
-		if ((this.path.length() > 0))
+		sb.append(this.site+"/");
+		if (this.path.length() == 0) {
+			sb.append(this.getSite());
 			sb.append("/");
-		sb.append(this.getPath());
-		sb.append("/");
+		}
+		else {
+			sb.append(this.getPath());
+			sb.append("/");
+		}
 		sb.append(this.getFile());
 		
 		//System.out.println("Direct URL - Path: "+this.getPath()+" - File: "+this.getFile());

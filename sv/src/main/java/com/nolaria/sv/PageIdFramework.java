@@ -3,8 +3,14 @@
  */
 package com.nolaria.sv;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -24,7 +30,9 @@ import com.nolaria.sv.db.*;
 public class PageIdFramework {
 	public static String DEFAULT_SITE = "nolaria";
 	public static String DEFAULT_BANNER = "/media/customLogo.gif";
-
+	public static int MAX_NAV_DEPTH = 100;
+	public static String FILE_ROOT = "D:\\apache-tomcat-9.0.40\\webapps";
+	
 	private static final String DB_URL = "jdbc:mysql://localhost/site_view";
 	private static final String CREDS = "?user=root&password=admin";
 
@@ -39,6 +47,7 @@ public class PageIdFramework {
 	public String pageId = null;
 	public PageId page = null;
 	
+	public Map<String,PageId> pages = new HashMap<String,PageId>();
 	
 
 	/**
@@ -75,6 +84,8 @@ public class PageIdFramework {
 			siteRegistry = new SiteRegistry(conn);
 			pageRegistry = new PageRegistry(conn);
 			
+			System.out.println("\n============================ Site Viewer =============================\n");
+			
 			this.site = siteRegistry.getSiteByName(this.siteName);
 			if (this.site == null )
 				this.error = "Site not found for: "+this.siteName;
@@ -87,6 +98,24 @@ public class PageIdFramework {
 			else
 				System.out.println ("Page: "+this.page.toString());
 			
+			//	Create a map of filenames to pages.  Allows lookup of pages by file name from directory walk.
+			List<PageId> pageList = pageRegistry.getAllPages();
+			for (PageId page : pageList) {
+				this.pages.put(page.getFile(), page);
+			}
+			
+			//	Some debugging logic for the page lookup table.
+			/*
+			System.out.println("Page lookup table size: "+this.pages.size());
+			String testPageName = "ab-secmil.html";
+			PageId testPage = this.pages.get(testPageName);
+			if (testPage == null)
+				System.out.println("Unable to lookup "+testPageName);
+			else
+				System.out.println("Lookup for "+testPageName+" gives an id of: "+testPage.getId());
+			
+			System.out.println();
+			*/
 		}
 		catch (Exception ex) {
 			this.error = ex.getMessage();
@@ -133,12 +162,163 @@ public class PageIdFramework {
 		return this.page.getIFrame();
 	}
 	
+	/**
+	 * Creates the mark-up for the navigation pane using a drop down style.
+	 * 
+	 * @return HTML
+	 */
 	public String getNavigation() {
-		return "<h1>Navigation</h1>";
+		return this.getDropNavigation();
 	}
 
 	public String getFooter() {
 		return "<h1>Footer</h1>";
+	}
+	
+	/**
+	 * Get the text for full navigation using drop down icons.
+	 * 
+	 * @return full drop down navigation text.
+	 */
+	private String getDropNavigation() {
+		StringBuffer sb = new StringBuffer();
+		
+		sb.append("<div data-ui-css-component=\"treeview\"><ul>\n");
+		this.directoryWalkerDrop(0, "", sb);
+		sb.append("</ul></div>\n");
+		
+		return sb.toString();		
+	}
+
+	/**
+	 * Recurse over the directory tree generating text for each folder level.
+	 * This version generates HTML that uses the drop down navigation controls in CSS.
+	 * 
+	 * WARNING:  This method uses recursion!
+	 * 
+	 * @return drop down nav content
+	 */
+	private void directoryWalkerDrop (int level, String relPath, StringBuffer sb) {
+		//PageFramework.logger.log(Level.INFO, "Level: " + level + ", Rel Path:  ["+relPath+"]");
+		
+		String[] relParts = this.page.getPath().split("/");
+		
+		//	Convert relative path to a full path.
+		String dirPath = FILE_ROOT + relPath;
+		if (relPath.length() == 0)
+			dirPath = FILE_ROOT+"/"+this.siteName;
+		File dirFile = new File(dirPath);
+		
+		System.out.println("Page path: "+this.page.getPath());
+		System.out.println("dirFile: "+dirFile);
+		
+		// Check for no files in this directory.
+		File[] files = dirFile.listFiles();
+		if (files == null || files.length == 0) {
+			sb.append("No files in path: " + dirPath + ".<br>");
+			//sb.append("No files here.<br>\n");
+			return;
+		}
+		
+		TreeMap<String,File> fileList = new TreeMap<String,File>();
+		TreeMap<String,File> dirList = new TreeMap<String,File>();		
+
+		//	Iterate over all files in this directory and sort them into maps.
+		for (File f: files) {
+			String name = f.getName();
+						
+			//	See if this file is a directory.
+			if (f.isDirectory()) {
+				//PageFramework.logger.log(Level.INFO, "Directory name added to list: " +name);
+				dirList.put(name, f);
+			}
+			
+			//	If not, it is a file.
+			else {
+				fileList.put(name, f);
+			}
+		}
+		
+		//	Iterate over the files and generate navigation content.
+		for (File f: files) {
+			String name = f.getName();
+			String relFilePath = Util.extractRelativePath(f.getPath());		//	Includes /sv/ at the start.
+			relFilePath = relFilePath.replaceAll("\\\\", "/");
+
+			//	Check for and skip style sheets.
+			if (name.indexOf(".css") >= 0)
+				continue;
+
+			//	This id is used for the drop down controls.  Using page names led to duplicate ids that prevented some folders from dropping down.
+			String randId = UUID.randomUUID().toString();
+			
+			//	See if this file is a directory.
+			if (f.isDirectory()) {
+				//System.out.println("Recursion level: "+level+" relFilePath: "+relFilePath+" name: "+name);
+				if (name.compareTo("media") != 0) {
+					String fn = name+".html";
+
+					//	Look up the page by it's filename.  If not found, add error message and continue.
+					PageId page = this.pages.get(fn);
+					if (page == null) {
+						System.out.println("Directory page not found for "+relFilePath+" - "+fn);
+						sb.append(Util.tabber(level)+"Directory page not found for "+relFilePath+" - "+fn+"<br>");
+						continue;
+					}
+
+					//	Set the check flag (dropped down).
+					String checked = "";
+					if (level < relParts.length)
+						if (relParts[level].compareTo(name) == 0)
+							checked = " checked=\"true\"";
+						else
+							System.out.println(relParts[level]+" is not the same as "+name);
+					
+					sb.append(Util.tabber(level)+"<li>\n");
+					sb.append(Util.tabber(level)+"<input type=\"checkbox\" id=\""+randId+"\""+checked+"/>\n");
+					sb.append(Util.tabber(level)+"<label for=\""+randId+"\">");
+					sb.append(Util.indent(level)+"<a href='/sv?site="+this.siteName+"&id="+page.getId()+"'>"+name+"</a>");
+					sb.append("</label>\n");
+					sb.append(Util.tabber(level)+"<ul>\n");
+
+					//	Recurse into the directory.
+					if (level < MAX_NAV_DEPTH) {
+						directoryWalkerDrop(level+1, relFilePath, sb);
+					}
+
+					sb.append(Util.tabber(level)+"</ul>\n");
+					sb.append(Util.tabber(level)+"</li>\n");
+				}
+			}
+			
+			//	If not, it is a file.
+			else {
+				//	Filter out the style sheet, if it shows up.
+				if ((name.compareTo("nolaria.css") == 0) || (name.compareTo("blue.css") == 0) )
+						continue;
+
+				String fn = name;
+
+				//	Look up the page by it's filename.  If not found, add error message and continue.
+				PageId page = this.pages.get(fn);
+				if (page == null) {
+					System.out.println("File page not found for "+relFilePath+" - "+fn);
+					sb.append(Util.tabber(level)+"File page not found for "+relFilePath+" - "+fn+"<br>");
+					continue;
+				}
+
+				//	If the name is not in the directory list, then add it.
+				String[] parts = name.split("\\.");
+				if (dirList.get(parts[0]) == null) {
+					//sb.append(indent(level)+"<a href='/sv?ref="+relFilePath+"'>"+name+"</a><br>\n");
+					sb.append(Util.tabber(level)+"<li><span>");
+					sb.append(Util.indent(level)+"<a href='/sv?site="+this.siteName+"&id="+page.getId()+"'>"+name+"</a>");
+					//sb.append(Util.indent(level)+"<a href='/sv?ref="+relFilePath+"'>"+name+"</a>");
+					sb.append("</span></li>\n");
+				}
+			}
+
+		}
 	}
 
 }

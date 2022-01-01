@@ -31,12 +31,21 @@
 		<version>2.7.3</version>
 	</dependency>
 
+	<!-- Registry Classes -->
+	<dependency> 
+		<groupId>com.nolaria</groupId>
+		<artifactId>register</artifactId>
+		<version>1.0.0</version>
+	</dependency>
+
+    <!--  Not currently using JUnit testing.
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>3.8.1</version>
       <scope>test</scope>
     </dependency>
+    -->
 
 	  <!-- Log4j2 Support -->
 	  <dependency>
