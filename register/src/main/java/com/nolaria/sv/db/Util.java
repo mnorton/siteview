@@ -4,11 +4,13 @@
 package com.nolaria.sv.db;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 
 /**
  * This is a collection of methods commonly used to work with pages and sites.
+ * All methods are static.
  * 
  * @author markjnorton@gmail.com
  *
@@ -85,6 +87,38 @@ public class Util {
 		}
 				
 		return sb.toString();
+	}
+
+	/**
+	 * Save the contents passed to the file named.
+	 * 
+	 * @param contents
+	 * @param fileName
+	 */
+	public static void saveFile (String contents, String fileName) {
+		FileOutputStream out = null;
+		try {
+			out = new FileOutputStream (fileName);
+
+			for (int i=0; i<contents.length(); i++) {
+				int datum = (int)contents.charAt(i);
+				out.write(datum);				
+			}
+		}
+		catch (IOException io) {
+			System.out.println ("Exception when saving file: "+fileName);
+			System.out.println (io.getMessage());
+			System.out.println (io.getCause());			
+		}
+		finally {
+			try {
+				if (out != null)
+					out.close();
+			}
+			catch (IOException close) {
+				System.out.println ("Error on closing file: "+fileName);
+			}
+		}		
 	}
 
 	/**

@@ -6,6 +6,7 @@ package com.nolaria.sv;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,14 +101,15 @@ public class PageIdFramework {
 			
 			//	Create a map of filenames to pages.  Allows lookup of pages by file name from directory walk.
 			List<PageId> pageList = pageRegistry.getAllPages();
-			for (PageId page : pageList) {
-				this.pages.put(page.getFile(), page);
+			for (PageId lookupPage : pageList) {
+				String key = lookupPage.getSite() + "/" + lookupPage.getPath() + "/" + lookupPage.getFile();
+				this.pages.put(key, lookupPage);
 			}
 			
 			//	Some debugging logic for the page lookup table.
 			/*
 			System.out.println("Page lookup table size: "+this.pages.size());
-			String testPageName = "ab-secmil.html";
+			String testPageName = "nolaria//ab-secmil.html";
 			PageId testPage = this.pages.get(testPageName);
 			if (testPage == null)
 				System.out.println("Unable to lookup "+testPageName);
@@ -141,14 +143,42 @@ public class PageIdFramework {
 				
 		StringBuffer sb = new StringBuffer();
 		
+		//	Check for a new page request.
+		String newTitle = this.request.getParameter("new-title");
+		if ( (newTitle != null) && (newTitle.length() > 0) )
+			this.createNewPage(newTitle);
+
+		
 		//	TODO:  Create a means to find the banner image for any site.
 		//	Add the banner logo.
-		sb.append(
-				"\t<a href=\"/"+this.siteName+"/home.html\"><img float=\"left\" src=\"/"+this.siteName+"/"+DEFAULT_BANNER+"\" width=\"500\"/></a>\n");
+		sb.append("\t<a href=\"/"+this.siteName+"/home.html\"><img float=\"left\" src=\"/"+this.siteName+"/"+DEFAULT_BANNER+"\" width=\"500\"/></a>\n");
 		//sb.append("&nbsp;&nbsp;&nbsp;&nbsp;\n");
 		sb.append("\t<br>\n");
 		
-		//	TODO:  Add code to handle make page.
+		//	Show full path name of this page.
+		//sb.append("\t<div style=\"font-size: 12pt\"><b>" + this.page.getFullPath() + "</b></div><br>\n");
+		
+		//	New Page Form.
+		sb.append("\t<br><div>\n");
+		sb.append("\t<form id=\"new-page-form\" method=\"get\" action=\"/sv\">\n");
+
+		sb.append("\t\t<input type=\"hidden\" name=\"site\" value=\""+this.page.getSite()+"\">\n");
+		sb.append("\t\t<input type=\"hidden\" name=\"id\" value=\""+this.page.getId()+"\">\n");
+
+		sb.append("\t\t<span style=\\\"color: yellow;\\\"><button type=\"submit\" form=\"new-page-form\">\n");
+		sb.append("\t\t\t<b>New Page</b></button></span>&nbsp;&nbsp;\n");
+		sb.append("\t\t</span>&nbsp;&nbsp;\n");
+		sb.append("\t\t<label for=\"new-title\"><b>Title:</b></label>\n");
+		sb.append("\t\t<input type=\"text\" id=\"new-title\" name=\"new-title\">\n");
+
+		sb.append("\t\t&nbsp;&nbsp;<a target=\"_blank\" href=\"" + this.page.getDirectUrl() + "\"/>\n");
+		sb.append("\t\t<button type=\"button\">\n");
+		sb.append("\t\t\t<b>Print</b>\n");
+		sb.append("\t\t</button>\n");
+		sb.append("\t\t</a>\n");
+
+		sb.append("\t</form>\n");		
+		sb.append("\t</div>\n");
 
 		return sb.toString();
 	}
@@ -199,7 +229,7 @@ public class PageIdFramework {
 	 * @return drop down nav content
 	 */
 	private void directoryWalkerDrop (int level, String relPath, StringBuffer sb) {
-		//PageFramework.logger.log(Level.INFO, "Level: " + level + ", Rel Path:  ["+relPath+"]");
+		//System.out.println("Level: " + level + ", Rel Path:  ["+relPath+"]");
 		
 		String[] relParts = this.page.getPath().split("/");
 		
@@ -209,8 +239,8 @@ public class PageIdFramework {
 			dirPath = FILE_ROOT+"/"+this.siteName;
 		File dirFile = new File(dirPath);
 		
-		System.out.println("Page path: "+this.page.getPath());
-		System.out.println("dirFile: "+dirFile);
+		//System.out.println("Page path: "+relPath);
+		//System.out.println("dirFile: "+dirPath);
 		
 		// Check for no files in this directory.
 		File[] files = dirFile.listFiles();
@@ -229,7 +259,6 @@ public class PageIdFramework {
 						
 			//	See if this file is a directory.
 			if (f.isDirectory()) {
-				//PageFramework.logger.log(Level.INFO, "Directory name added to list: " +name);
 				dirList.put(name, f);
 			}
 			
@@ -242,7 +271,7 @@ public class PageIdFramework {
 		//	Iterate over the files and generate navigation content.
 		for (File f: files) {
 			String name = f.getName();
-			String relFilePath = Util.extractRelativePath(f.getPath());		//	Includes /sv/ at the start.
+			String relFilePath = Util.extractRelativePath(f.getPath());
 			relFilePath = relFilePath.replaceAll("\\\\", "/");
 
 			//	Check for and skip style sheets.
@@ -257,27 +286,54 @@ public class PageIdFramework {
 				//System.out.println("Recursion level: "+level+" relFilePath: "+relFilePath+" name: "+name);
 				if (name.compareTo("media") != 0) {
 					String fn = name+".html";
-
+					
+					//	The path is used to create a lookup key.
+					relParts = relFilePath.split("/");
+					String path = "";
+					for (String pt : relParts) {
+						//	Skip the site name.
+						if (pt.compareTo(this.siteName) == 0)
+							continue;
+						//	Skip the directory name.
+						if (pt.compareTo(name) == 0)
+							continue;
+						
+						path += "/" + pt;
+					}
+					//	Fix up the path.
+					int off = 0;
+					for (int i=0; i<path.length(); i++) {
+						if (path.charAt(i) != '/')
+							break;
+						else
+							off++;
+					}
+					path = path.substring(off, path.length());
+					
 					//	Look up the page by it's filename.  If not found, add error message and continue.
-					PageId page = this.pages.get(fn);
-					if (page == null) {
-						System.out.println("Directory page not found for "+relFilePath+" - "+fn);
-						sb.append(Util.tabber(level)+"Directory page not found for "+relFilePath+" - "+fn+"<br>");
+					String key = this.siteName + "/" + path + "/" + fn;
+					PageId foundPage = this.pages.get(key);
+					if (foundPage == null) {
+						//System.out.println("Directory page not found for "+key);
+						System.out.println("Directory page not found for "+this.siteName+" - "+path+" - "+fn);
+						sb.append(Util.tabber(level)+"Directory page not found for "+key+"<br>");
 						continue;
 					}
 
 					//	Set the check flag (dropped down).
+					String pathParts[] = this.page.getPath().split("/");
 					String checked = "";
-					if (level < relParts.length)
-						if (relParts[level].compareTo(name) == 0)
+					if (level < pathParts.length) {
+						if (pathParts[level].compareTo(name) == 0)
 							checked = " checked=\"true\"";
-						else
-							System.out.println(relParts[level]+" is not the same as "+name);
+						//else
+						//	System.out.println("Page path ["+this.page.getPath()+"] at level "+(level)+":  ["+pathParts[level]+"] is not the same as ["+name+"]");
+					}
 					
 					sb.append(Util.tabber(level)+"<li>\n");
 					sb.append(Util.tabber(level)+"<input type=\"checkbox\" id=\""+randId+"\""+checked+"/>\n");
 					sb.append(Util.tabber(level)+"<label for=\""+randId+"\">");
-					sb.append(Util.indent(level)+"<a href='/sv?site="+this.siteName+"&id="+page.getId()+"'>"+name+"</a>");
+					sb.append(Util.indent(level)+"<a href='/sv?site="+this.siteName+"&id="+foundPage.getId()+"'>"+name+"</a>");
 					sb.append("</label>\n");
 					sb.append(Util.tabber(level)+"<ul>\n");
 
@@ -294,16 +350,42 @@ public class PageIdFramework {
 			//	If not, it is a file.
 			else {
 				//	Filter out the style sheet, if it shows up.
-				if ((name.compareTo("nolaria.css") == 0) || (name.compareTo("blue.css") == 0) )
-						continue;
+				//if ((name.compareTo("nolaria.css") == 0) || (name.compareTo("blue.css") == 0) )
+				//		continue;
 
 				String fn = name;
+				
+				//	The path is used to create a lookup key.
+				relParts = relFilePath.split("/");
+				String path = "";
+				for (String pt : relParts) {
+					//	Skip the site name.
+					if (pt.compareTo(this.siteName) == 0)
+						continue;
+					//	Skip the directory name.
+					if (pt.compareTo(fn) == 0)
+						continue;
+					
+					path += "/" + pt;
+				}
+				//	Fix up the path.
+				int off = 0;
+				for (int i=0; i<path.length(); i++) {
+					if (path.charAt(i) != '/')
+						break;
+					else
+						off++;
+				}
+				path = path.substring(off, path.length());
+
 
 				//	Look up the page by it's filename.  If not found, add error message and continue.
-				PageId page = this.pages.get(fn);
-				if (page == null) {
-					System.out.println("File page not found for "+relFilePath+" - "+fn);
-					sb.append(Util.tabber(level)+"File page not found for "+relFilePath+" - "+fn+"<br>");
+				String key = this.siteName + "/" + path + "/" + fn;
+				PageId foundPage = this.pages.get(key);
+				if (foundPage == null) {
+					//System.out.println("File page not found for "+key);
+					System.out.println("File page not found for "+this.siteName+" - "+path+" - "+fn);
+					sb.append(Util.tabber(level)+"File page not found for "+key+"<br>");
 					continue;
 				}
 
@@ -312,7 +394,7 @@ public class PageIdFramework {
 				if (dirList.get(parts[0]) == null) {
 					//sb.append(indent(level)+"<a href='/sv?ref="+relFilePath+"'>"+name+"</a><br>\n");
 					sb.append(Util.tabber(level)+"<li><span>");
-					sb.append(Util.indent(level)+"<a href='/sv?site="+this.siteName+"&id="+page.getId()+"'>"+name+"</a>");
+					sb.append(Util.indent(level)+"<a href='/sv?site="+this.siteName+"&id="+foundPage.getId()+"'>"+name+"</a>");
 					//sb.append(Util.indent(level)+"<a href='/sv?ref="+relFilePath+"'>"+name+"</a>");
 					sb.append("</span></li>\n");
 				}
@@ -321,4 +403,87 @@ public class PageIdFramework {
 		}
 	}
 
+	
+	/************************************************************************
+	 *                   Request Processors                                 *
+	 ***********************************************************************/
+
+	/**
+	 * Create a new page from the title passed in the directory specified by ref.
+	 * 
+	 * @param ref - directory path
+	 * @param newTitle - title of the new page.
+	 */
+	public void createNewPage(String newTitle) {
+		
+		String path = this.page.getPath();
+		
+		String currentPageFile = this.page.getFile();
+		String node = currentPageFile.substring(0, currentPageFile.indexOf(".html"));
+		String file = newTitle.replaceAll(" ", "-").toLowerCase() + node +".html";
+		String pid = UUID.randomUUID().toString();
+
+		System.out.println("Create a new page: "+newTitle+ " in file: "+file);
+
+		//	Register the new page.
+		try {
+			pageRegistry.registerPage(pid, this.siteName, newTitle, file, path);
+		}
+		catch (SQLException sql) {
+			System.out.println("Unable to create page "+newTitle);
+			System.out.println(sql.getMessage());
+		}
+
+		//	Create the HTML content of the new page.
+		StringBuffer content = new StringBuffer();
+		content.append("<!DOCTYPE html>\n");
+		content.append("<html lang=\"en-us\">\n");
+		
+		//	Add HEAD content.
+		content.append("<head>\n");
+		content.append("\t<link rel=\"stylesheet\" href=\"http://localhost:8080/nolaria/green.css\">\n");
+		content.append("\t<title>"+newTitle+"</title>\n");
+		content.append("\t<meta name=\"title\" content=\""+newTitle+"\" />\n");
+		content.append("\t<meta name=\"name\" content=\""+file+"\" />\n");
+		content.append("\t<meta name=\"pid\" content=\""+pid+"\" />\n");
+
+		content.append("\t<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n");
+		content.append("\t<meta http-equiv=\"Pragma\" content=\"no-cache\" />\n");
+		content.append("\t<meta http-equiv=\"Expires\" content=\"0\" />\n");
+		content.append("</head>\n");
+
+		//	Add BODY content.
+		content.append("<body>\n");
+		content.append("\t<h1>"+newTitle+"</h1>\n");
+		content.append("</body>\n");
+
+		content.append("</html>\n");
+		
+		//	Extract the path part of the page reference.
+		/*
+		int extentionOffest = ref.indexOf(".html");
+		String path = "";
+		if (extentionOffest != -1)
+			path = ref.substring(0, extentionOffest);
+		*/
+		
+		//	Make a folder to how the new page, if needed.
+		String dirName = FILE_ROOT+"\\"+this.siteName;
+		if (path.length() > 0)
+			dirName += "\\" + path + "\\" + node;
+		else
+			dirName += "\\" + node;
+		File dirFile = new File(dirName);
+		if (!dirFile.exists()) {
+			//if (dirFile.mkdir() == true)
+				System.out.println("Created a directory called: "+dirFile);
+		}
+		
+		//	Save the contents out to the new page file.
+		String fileName = dirName+"\\"+file;
+		//Util.saveFile(content.toString(), fileName);
+		
+		System.out.println("Created a page called: "+newTitle+" in a name of: "+file+" with a PID of: "+pid);
+		System.out.println("Save new contents to: "+fileName);
+	}
 }

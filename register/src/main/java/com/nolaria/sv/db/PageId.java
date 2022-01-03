@@ -115,16 +115,12 @@ public class PageId {
 	 * 
 	 * @return URL string
 	 */
-	private String getDirectUrl() {
+	public String getDirectUrl() {
 		StringBuffer sb = new StringBuffer();
 		
 		sb.append("http://localhost:8080/");
 		sb.append(this.site+"/");
-		if (this.path.length() == 0) {
-			sb.append(this.getSite());
-			sb.append("/");
-		}
-		else {
+		if (this.path.length() != 0) {
 			sb.append(this.getPath());
 			sb.append("/");
 		}

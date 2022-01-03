@@ -59,7 +59,7 @@ public class PageRegistry {
 			pages.add(page);
 		}
 		rs.close();
-		stmt.close();
+		//stmt.close();
 
 		return pages;
 	}
@@ -88,7 +88,7 @@ public class PageRegistry {
 		}
 		
 		rs.close();
-		stmt.close();
+		//stmt.close();
 		
 		return page;
 	}
@@ -113,7 +113,7 @@ public class PageRegistry {
 
 		Statement stmt = this.connector.createStatement();;
 		stmt.execute(query);
-		stmt.close();
+		//stmt.close();
 	}
 	
 }
