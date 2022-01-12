@@ -9,6 +9,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.Vector;
 
 import com.nolaria.sv.db.*;
@@ -24,6 +25,10 @@ public class Register {
 	private static final String DB_URL = "jdbc:mysql://localhost/site_view";
 	private static final String CREDS = "?user=root&password=admin";
 	private static final String DEFAULT_SITE = "nolaria";
+	
+	private static String ALLEGORY_ID = "7cbd34d1-72e3-43b9-b35d-4129ca489547";
+	private static String ALTAMEK_ID = "4ca132aa-fcd0-4cd9-84b5-c5abaa10a58a";
+
 	
 	
 	//	An instance of the application class.
@@ -41,7 +46,7 @@ public class Register {
 	private List<String> allPageNames = null;
 	private List<String> failedRegistrations = null;
 	
-	private int registerCount = 0;
+	public int registerCount = 0;
 
 	/**
 	 * Static main entry point.  Creates a Register object and starts the scan.
@@ -62,10 +67,16 @@ public class Register {
 
 			// Create the site and page registry objects.
 			register.siteRegistry = new SiteRegistry(register.conn);
-			register.pageRegistry = new PageRegistry(register.conn);
+			register.pageRegistry = new PageRegistry(register.conn, true);
+			
+			// ===================  Test =============================
+			System.out.println("Page Registry Tests");
+			register.testSuccessiveGetPage();
+			register.testRegisterPage();
 
+			// =================  Operation ==========================
 			// Scan a site and register pages not already registered.
-			register.scanAndRegister(DEFAULT_SITE);
+			//register.scanAndRegister(DEFAULT_SITE);
 
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -73,8 +84,12 @@ public class Register {
 			register.conn.close();
 		}
 
-	  }
-	  	  
+	}
+
+	/****************************************************************
+	 *                    Operations                                *
+	 ****************************************************************/
+	
 	/**
 	 *	Scan the directory tree associated with the site name passed and register all
 	 *	unregistered pages.
@@ -245,6 +260,61 @@ public class Register {
 		return relFilePath + " --- "+status;
 		//return fileName + " --- "+status;
 	}
-	
 
+	
+	/****************************************************************
+	 *                    Operations                                *
+	 ****************************************************************/
+
+	/**
+	 * Get two pages in a row from the Page Registry.
+	 */
+	@SuppressWarnings(value = { "unused" })
+	public void testSuccessiveGetPage() {
+		
+		try {
+			PageId page1 = pageRegistry.getPage(ALLEGORY_ID);
+			//System.out.println("Got the page called "+page1.getName());
+			PageId page2 = pageRegistry.getPage(ALTAMEK_ID);
+			//System.out.println("Got the page called "+page2.getName());
+		}
+		catch (SQLException sql) {
+			System.out.println("\ttestSuccessiveGetPage: FAILED");
+			sql.printStackTrace();
+		}
+		
+		System.out.println("\ttestSuccessiveGetPage:  PASS");
+	}
+
+	/**
+	 * Get all and then attempt to register a new, test page.
+	 * This attempts to reproduce a bug seen in PageIdFramework.createNewPage()
+	 */
+	@SuppressWarnings(value = { "unused" })
+	public void testRegisterPage() {
+		UUID randId = UUID.randomUUID();
+		String pid = randId.toString();
+		
+		try {
+			//	These happen in the PageIdFramework constructor.
+			Site site = siteRegistry.getSiteByName(DEFAULT_SITE);
+			
+			PageId testPage = pageRegistry.getPage(pid);
+			if (testPage != null)
+				System.out.println("\tPage already exists for: "+pid);
+
+			List<PageId> allPages = pageRegistry.getAllPages();
+			
+			//	These happen in createNewPage()
+			pageRegistry.registerPage(pid, DEFAULT_SITE, "TEST", "test.html", "/test");
+			
+			//	Delete the test page created.
+			pageRegistry.deletePage(pid);
+		}
+		catch (SQLException sql) {
+			System.out.println("\ttestRegisterPage: FAILED");
+			sql.printStackTrace();
+		}
+		System.out.println("\ttestRegisterPage:  PASS");	
+	}
 }

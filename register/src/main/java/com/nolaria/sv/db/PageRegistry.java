@@ -22,6 +22,9 @@ public class PageRegistry {
 	private static String ALL_PAGES_QUERY = "select id,site,name,file,path from page_registry where archived!='T'";
 	// insert into page_registry (id,site,name,file,path) values ('654b7d10-a431-4cec-9d1d-4262209c9b56','nolaria','Books','books.html','/home');
 	private static String REGISTER_PAGE_QUERY = "insert into page_registry (id,site,name,file,path) values ";
+	private static String PAGE_DELETE_BY_ID_QUERY = "delete from page_registry where id=";
+	
+	public static Boolean Delete = false;	//	If false, this prevents the deletePage method from deleting pages.
 
 
 	/**
@@ -30,6 +33,10 @@ public class PageRegistry {
 	 */
 	public PageRegistry (Connection connector) {
 		this.connector = connector;
+	}
+	public PageRegistry (Connection connector, Boolean delete) {
+		this.connector = connector;
+		Delete = delete;
 	}
 	
 	/**
@@ -116,4 +123,23 @@ public class PageRegistry {
 		//stmt.close();
 	}
 	
+	/**
+	 * If enabled, delete the page specified by id.
+	 * Delete enable is a flag in the PageRegistry class.
+	 * 
+	 * @param id of page to delete
+	 */
+	public void deletePage(String id) throws SQLException {
+		//	Check to see if delete is enable.
+		if (Delete == false) {
+			System.out.println("Delete page is not enabled.  Unable to delete: "+id);
+			return;
+		}
+		
+		String query = PAGE_DELETE_BY_ID_QUERY +"'"+id+"'";
+		
+		Statement stmt = this.connector.createStatement();;
+		stmt.execute(query);
+	
+	}
 }
