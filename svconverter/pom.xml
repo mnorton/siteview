@@ -2,8 +2,8 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.nolaria</groupId>
   <artifactId>svconverter</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
-  <name>A Google Sites source converter</name>
+  <version>2.0.0</version>
+  <name>Google Sites source converter and bug fixing</name>
 
   <properties>
      <java.version>11</java.version>
@@ -11,4 +11,12 @@
      <maven.compiler.target>11</maven.compiler.target>
   </properties>
 
+  <dependencies>
+	<!-- Registry Classes -->
+	<dependency> 
+		<groupId>com.nolaria</groupId>
+		<artifactId>register</artifactId>
+		<version>1.0.0</version>
+	</dependency>
+  </dependencies>
 </project>
