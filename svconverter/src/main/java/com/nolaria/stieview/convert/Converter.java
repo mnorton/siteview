@@ -7,7 +7,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Date;
+//import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -25,7 +25,7 @@ public class Converter {
 	// Constants.
 	public static Converter app = new Converter();
 	public static final String FileSep = "/";
-	public static Boolean ContentOnly = false; // True if only the content is to be copied.
+	public static Boolean ContentOnly = true; // True if only the content is to be copied.
 
 	public static enum FileType {
 		WEB, IMAGE, VIDEO, AUDIO, TEXT, XML, JSON, DIR, UNKNOWN
@@ -34,7 +34,7 @@ public class Converter {
 	public static final String STYLE_SHEET_PATH = "d:\\dev\\siteview\\shared\\styles\\green.css";
 
 	// This is where all of the source pages live, to be converted.
-	public static final String TAKEOUT_DIR = "D:\\Google\\Takeout";
+	public static final String TAKEOUT_DIR = "D:\\Google-Download\\Takeout\\ClassicSites";
 
 	// Change these to be the names of the source and target site.
 	public static final String SRC_SITE = "nolariaplanes";
@@ -47,6 +47,12 @@ public class Converter {
 	public static final String STYLE_SHEET_URL = HOST + "/" + TARGET_SITE + "/" + TARGET_SITE + ".css";
 
 	public static final String MEDIA_DIR_NAME = "media";
+	
+	public static final String TEST_FILE_SRC = "D:\\Google-Download\\Takeout\\ClassicSites\\nolariaplanes\\home.html";
+	public static final String TEST_FILE_DEST = "D:\\apache-tomcat-9.0.40\\webapps\\planes\\home.html";
+	
+	//	Instance variables.
+	public int fileCount = 0;
 
 	/**
 	 * Main entry point for the converter application. NOTE: currently this is hard
@@ -65,8 +71,17 @@ public class Converter {
 
 		// app.convert("nolariadd", "nolaria");
 		app.prepareTargetSite(TARGET_SITE);
-		//app.convert(SRC_SITE, TARGET_SITE);
+		app.convert(SRC_SITE, TARGET_SITE);
+		
+		System.out.println ("\nFiles converted: "+app.fileCount);
 
+		//	Single file test.
+		/*
+		File testFile = new File(TEST_FILE_DEST);
+		if (testFile.exists())
+			testFile.delete();
+		app.convertAndCopy(TEST_FILE_SRC, TARGET_SITE);
+		*/
 	}
 
 	/**
@@ -76,19 +91,23 @@ public class Converter {
 	 */
 	public void prepareTargetSite(String siteName) {
 		String targetFilePath = ROOT_PATH +"\\"+siteName;
-		String mediaFilePath = targetFilePath+MEDIA_DIR_NAME;
+		String mediaFilePath = targetFilePath+"\\"+MEDIA_DIR_NAME;
 
 		//	Create the target site directory.
 		File rootDirFile = new File(targetFilePath);
 		if (!rootDirFile.exists()) {
 			rootDirFile.mkdir();
 		}
+		else
+			System.out.println("Root site directory already exists for: "+siteName);
 
 		//	Create the media directory
 		File mediaDirFile = new File(mediaFilePath);
 		if (!mediaDirFile.exists()) {
 			mediaDirFile.mkdir();
 		}
+		else
+			System.out.println("Media directory already exists for: "+siteName);
 		
 		//	Copy the style sheet.
 		String targetStylePath = targetFilePath + "\\" + siteName + ".css";
@@ -100,7 +119,7 @@ public class Converter {
 			System.out.println(io.getMessage());
 		}
 		
-		System.out.println(siteName+ " was prepared successfully.");
+		System.out.println(siteName+ " was prepared successfully.\n");
 	}
 
 	/**
@@ -154,21 +173,21 @@ public class Converter {
 		File srcNode = new File(filePath);
 		String srcName = srcNode.getName();
 
-		System.out.println(indent(depth) + "Copy and Convert: " + srcName + " to: " + relTargetPath);
+		//System.out.println(indent(depth) + "Copy and Convert: " + srcName + " to: " + relTargetPath);
 
 		String[] sParts = srcName.split("\\.");
 		String correspondingDirName = "";
 		if (sParts.length == 2) {
 			correspondingDirName = sParts[0];
-			System.out.println(indent(depth) + "Corresponding directory name: " + correspondingDirName);
+			//System.out.println(indent(depth) + "Corresponding directory name: " + correspondingDirName);
 		} else {
-			System.out.println(indent(depth) + "Unable to split source file name: " + srcName);
+			//System.out.println(indent(depth) + "Unable to split source file name: " + srcName);
 			return;
 		}
 
 		if (srcNode.isFile() == true) {
 			FileType type = getFileType(filePath);
-			System.out.println(indent(depth) + "File Type: " + type);
+			//System.out.println(indent(depth) + "File Type: " + type);
 
 			// Handle the file based on file type.
 			switch (type) {
@@ -176,7 +195,8 @@ public class Converter {
 				// Convert and copy the web page.
 				System.out.println(indent(depth) + "Copy and Convert Page: " + srcName + " to: " + relTargetPath);
 
-				////////// convertAndCopy (filePath, relTargetPath);
+				this.convertAndCopy (filePath, relTargetPath);
+				this.fileCount++;
 
 				// See if there is a corresponding directory for the web page in the current
 				// directory.
@@ -202,7 +222,7 @@ public class Converter {
 					// System.out.println(indent(depth)+"No corresponding directory:
 					// "+correspondingDirName);
 				} else {
-					System.out.println(indent(depth) + "Unable to split source file path: " + filePath);
+					//System.out.println(indent(depth) + "Unable to split source file path: " + filePath);
 					return;
 				}
 				break;
@@ -213,16 +233,22 @@ public class Converter {
 			case JSON:
 			case AUDIO:
 			case VIDEO:
-				// System.out.println (indent(depth)+"Copy: "+srcName+" to: "+relTargetPath);
+				//System.out.println (indent(depth)+"Copy image: "+srcName+" to: "+relTargetPath);
 				// copyFile (filePath, relTargetPath);
 				// copyFile (filePath, rootName+FileSep+"media");
-
-				////////// copyFileRelative (filePath, rootName, app.mediaDirName);
+				String targetFileName = ROOT_PATH+"\\"+TARGET_SITE+"\\"+MEDIA_DIR_NAME+"\\"+srcName;
+				System.out.println(indent(depth)+"Copy image from "+filePath+" to: "+targetFileName);
+				this.copyFile(filePath, targetFileName);
+				
+				//System.out.println (indent(depth)+"Copy image relative: "+relTargetPath+" name: "+srcName+" media: "+MEDIA_DIR_NAME);				
+				//////this.copyFileRelative (filePath, rootName, MEDIA_DIR_NAME);
+				//this.copyFileRelative (relTargetPath, srcName, MEDIA_DIR_NAME);
+				this.fileCount++;
 
 				break;
 
 			default:
-				System.out.println(indent(depth) + "Unknown file type: " + type);
+				System.out.println(indent(depth) + "Unknown file type: " + type + " for " + srcName);
 				return;
 			}
 		} else
@@ -246,7 +272,7 @@ public class Converter {
 		String srcName = srcFile.getName();
 		String srcContent = null;
 
-		// System.out.println("convertAndCopy: "+srcName+" to: "+relTargetPath);
+		//System.out.println("convertAndCopy: "+srcName+" to: "+relTargetPath);
 
 		/* Check for the existence of the relative target directory in Tomcat. */
 		String rootDirPath = ROOT_PATH + FileSep + relTargetPath;
@@ -278,8 +304,9 @@ public class Converter {
 		StringBuffer sb = new StringBuffer();
 
 		// Extract title and name.
-		// TODO: Check for single characgter titles and fix them.
 		Map<String, String> properties = extractNames(srcContent);
+		properties.put("name", srcName.substring(0, srcName.indexOf(".")));
+		
 		// System.out.println("Page title: ["+properties.get("title")+"] name:
 		// ["+properties.get("name")+"]");
 
@@ -422,7 +449,7 @@ public class Converter {
 		// System.out.println("First nbsp: "+targetContent.indexOf("Â"));
 		targetContent = targetContent.replace("Â", "&nbsp;"); // Convert non-breaking spaces.
 
-		targetContent = this.fixReferences(targetContent);
+		targetContent = this.fixLinks(targetContent);
 		targetContent = this.fixImages(targetContent);
 
 		return targetContent;
@@ -434,16 +461,28 @@ public class Converter {
 	 * @param content
 	 * @return fixed content string
 	 */
-	private String fixReferences(String content) {
+	private String fixLinks(String content) {
 		StringBuffer sb = new StringBuffer();
+		
+		String hrefStart = "<a href=\"";
+		String hrefEnd = "\">";
+		
 		for (int i = 0; i < content.length(); i++) {
 			char ch = content.charAt(i);
 			String remainingContent = content.substring(i);
 
 			// Check for an image.
-			if (checkForTag(remainingContent, "<img ") || checkForTag(remainingContent, "<IMG ")) {
-				// System.out.println("Reference found.");
-				sb.append(ch);
+			if (checkForTag(remainingContent, hrefStart)) {
+				// Find the end of the HREF.
+				int end = remainingContent.indexOf(hrefEnd);
+				String href = remainingContent.substring(hrefStart.length(), end);
+				//System.out.println("Link HREF found: "+href);
+				
+				String link = "<a target=\"_parent\" href=\"/sv?ref="+href+"&site="+TARGET_SITE+">";
+				//System.out.println("\tReplacement link:" + link);
+				
+				sb.append(link);
+				i += hrefStart.length();	// Skip over the current link start.
 			}
 
 			// Otherwise just copy the current character.
@@ -451,7 +490,7 @@ public class Converter {
 				sb.append(ch);
 			}
 		}
-		return content;
+		return sb.toString();
 	}
 
 	/**
@@ -591,7 +630,7 @@ public class Converter {
 	 * @param content
 	 * @return Map of title, name.
 	 */
-	public Map<String, String> extractNames(String content) {
+	public Map<String, String> extractNamesOld(String content) {
 		Map<String, String> names = new HashMap<String, String>();
 
 		// Extract the page title
@@ -685,6 +724,59 @@ public class Converter {
 
 		return names;
 	}
+	
+	/**
+	 * Extracts the page title and name from the <title> element in the source content header.
+	 * Page name is the same as the original title.
+	 * New page title converts dashes to spaces and capitalizes words.
+	 * 
+	 * @param content of page
+	 * @return a map containing title and name entries.
+	 */
+	public Map<String, String> extractNames(String content) {
+		Map<String, String> properties = new HashMap<String, String>();
+
+		//	Extract the name from the title element.
+		int titleStart = content.indexOf("<title>");
+		int titleEnd = content.indexOf("</title>");
+		String title = content.substring(titleStart+"<title>".length(), titleEnd);
+		
+		String[]bits = title.split(" - ");
+		
+		//	Convert the name into a title by replacing dashes with spaces.
+		if (bits.length == 2)
+			title = bits[0];
+		else
+			title = "Unknown";
+
+		title = title.replaceAll("---", " ~ ");
+		title = title.replaceAll("-", " ");
+		title = title.replaceAll("~", " ");
+		
+		//System.out.println("Pre-capitalized title: "+title);
+		
+		//	Capitalize words.
+		String[] parts = title.split(" ");
+		String capTitle = "";
+		for (String word : parts) {
+			if (word.length() > 0) {
+				char cap = Character.toUpperCase(word.charAt(0));
+				String capWord = cap + word.substring(1, word.length());
+				//System.out.println("\tCap: "+cap+" word: "+capWord);
+				capTitle += capWord + " ";
+			}
+			else
+				capTitle += " ";
+		}
+		capTitle = capTitle.trim();
+
+		//System.out.println("Final title: "+capTitle);
+
+		properties.put("title", capTitle);
+		//properties.put("name", name);
+		
+		return properties;
+	}
 
 	/**
 	 * Generate header text to be included in output file. Text generation is
@@ -701,18 +793,35 @@ public class Converter {
 
 		// Generate text for a content only output.
 		if (ContentOnly) {
+			// Add header block with title and meta tags.
+			sb.append("<!DOCTYPE html>\n");
+			sb.append("<html lang=\"en-us\"");
+			sb.append("<head>\n"); // Fixed from <header>
+			//	This style sheet reference allows BlueGriffin to style text during edit.
+			
+			//sb.append("\t<link rel=\"stylesheet\" href=\"/" + STYLE_SHEET_URL + "\">\n");
+			sb.append("\t<link rel=\"stylesheet\" href=\"http://localhost:8080/nolaria/green.css\">\n");
+			sb.append("\t<title>"+title+"</title>\n");
 
 			// Add title and name meta tags.
-			sb.append("<meta name=\"title\" content=\"" + title + "\" />\n");
-			sb.append("<meta name=\"name\" content=\"" + name + "\" />\n");
-			sb.append("<meta name=\"pid\" content=\"" + pid + "\" />\n");
+			sb.append("\t<meta name=\"title\" content=\"" + title + "\" />\n");
+			sb.append("\t<meta name=\"name\" content=\"" + name + "\" />\n");
+			sb.append("\t<meta name=\"pid\" content=\"" + pid + "\" />\n");
+			
+			sb.append("\t<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n");
+			sb.append("\t<meta http-equiv=\"Pragma\" content=\"no-cache\" />\n");
+			sb.append("\t<meta http-equiv=\"Expires\" content=\"0\" />\n");
+
+			sb.append("</head>\n"); // Fixed from </header>
+			sb.append("<body>\n");
+			sb.append("<h1>" + title + "</h1>\n");
 		}
 
 		// Generate text for a static web page.
 		else {
 			// Add header block with title and meta tags.
 			sb.append("<!DOCTYPE html>\n");
-			sb.append("<html svTitle=\"" + title + "\" lang=\"en-us\">\n");
+			sb.append("<html lang=\"en-us\"");
 			sb.append("<head>\n"); // Fixed from <header>
 			sb.append("\t<link rel=\"stylesheet\" href=\"/" + STYLE_SHEET_URL + "\">\n"); // This allows BlueGriffin to
 																							// see the style sheet.
@@ -720,6 +829,10 @@ public class Converter {
 			sb.append("\t<meta name=\"title\" content=\"" + title + "\" />\n");
 			sb.append("\t<meta name=\"name\" content=\"" + name + "\" />\n");
 			sb.append("\t<meta name=\"pid\" content=\"" + pid + "\" />\n");
+
+			sb.append("\t<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n");
+			sb.append("\t<meta http-equiv=\"Pragma\" content=\"no-cache\" />\n");
+			sb.append("\t<meta http-equiv=\"Expires\" content=\"0\" />\n");
 
 			// This is covered in the style sheet, so not needed.
 			// sb.append("\t<style>\n");
@@ -783,12 +896,12 @@ public class Converter {
 		if (parts.length == 0)
 			return FileType.UNKNOWN;
 
-		// One part is a directgory.
+		// One part is a directory.
 		if (parts.length == 1)
 			return FileType.DIR;
 
 		// Two parts means an extension was found.
-		String extension = parts[1];
+		String extension = parts[1].toLowerCase();
 		switch (extension) {
 		// Check for web pages.
 		case "html":
