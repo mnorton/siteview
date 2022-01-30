@@ -15,11 +15,14 @@ import java.util.UUID;
 /**
  * @author markjnorton@gmail.com
  *
- *         This is a utility application that takes path name pointer to the
- *         root of a file system containing HTML files down loaded from Google
- *         Sites. The app converts these files by extracting the core content
- *         and adding additional mark up to create a set of pages that can be
- *         viewed locally.
+ *	This is a utility application that takes path name pointer to the
+ *	root of a file system containing HTML files down loaded from Google
+ *	Sites. The app converts these files by extracting the core content
+ *	and adding additional mark up to create a set of pages that can be
+ *	viewed locally.
+ *
+ *	Updated in Jan. 2022 to include updates made in fixinplace.  Thus, most known 
+ *	HTML issues have been fixed in the converter as well.
  */
 public class Converter {
 	// Constants.
