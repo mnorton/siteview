@@ -1,17 +1,13 @@
 <html>
 <header>
-	<%@page import="com.nolaria.sv.PageFramework"%>
+	<%@page import="com.nolaria.sv.PageIdFramework"%>
 	<%
-	   String ref = request.getParameter("ref");
-	   String site = request.getParameter("site");
-	   PageFramework framework = new PageFramework(request);
+	   PageIdFramework framework = new PageIdFramework(request);
 	   
-	   String name = framework.getPageName();
-	   name = name.substring(0, name.indexOf("."));
-	   String title = framework.getPageTitle();
+	   String name = "test";
+	   String title = "test";
 	%>
 
-	<!--<link rel="stylesheet" href="/nolaria/nolaria.css">-->
 	<link rel="stylesheet" href="http://localhost:8080/nolaria/green.css">
 
 	<title>Site Viewer</title>

@@ -8,6 +8,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
+ * Should this be deprecated?
+ * 
  * Handle all Viewer methods.
  * 
  * @author markjnorton@gmail.com
