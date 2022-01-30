@@ -18,6 +18,9 @@ import javax.servlet.http.HttpServletRequest;
  * responsible for managing all of the panes that can appear for the current
  * request.
  * 
+ * This framework implements the Page Ref Model, which uses path-based references
+ * to identify a page.
+ * 
  * @author Mark J. Norton - markjnorton@gmail.com
  *
  */

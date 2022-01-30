@@ -12,7 +12,9 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServlet;
 
 /**
- * @author markj
+ * Should this be deprecated?
+ * 
+ * @author Mark Norton
  *
  */
 public class SiteView extends HttpServlet {

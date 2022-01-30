@@ -1,0 +1,135 @@
+body {
+  color: black;
+  font-family: arial, san-serif;
+  font-size: 12px;
+  margin: 10px,20px;
+}
+
+#body-div {
+  margin-right: 40px;
+}
+
+h1 {
+  color: #274e13;
+  font-family: arial;
+  font-size: 300%;
+}
+
+h2 {
+  color: #38761d;
+  font-family: arial;
+  font-size: 275%;
+}
+
+h3 {
+  color: #6aa84f;
+  font-family: arial;
+  font-size: 250%;
+}
+
+h4 {
+  color: #93c47d;
+  font-family: arial;
+  font-size: 225%;
+}
+
+h5 {
+  color: #B6d7a8;
+  font-family: arial;
+  font-size: 200%;
+}
+
+table, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+
+th {
+  border: 1px solid black;
+  border-collapse: collapse;
+  text-align: center;
+  background-color: lightblue;
+  padding: 5px;
+}
+
+td {
+  border: 1px solid black;
+  border-collapse: collapse;
+  padding: 5px;
+}
+
+a:link {
+  color: blue;
+}
+
+a:visited {
+  color: lightblue;
+}
+
+p {
+  color: black;
+  font-size: 12px;
+}
+
+iframe {
+  height: 100%;
+  width: 100%;
+  border:none;
+}
+
+
+/*  The following styles are used for drop down navigation  */
+/*  Original Source:  https://stackoverflow.com/questions/51277025/make-a-dropdown-tree-menu-similar-to-windows-explorer */
+
+[data-ui-css-component="treeview"] {
+  margin: 5px;
+  font-family: Verdana;
+  font-size: 14px;
+  color: #000;
+}
+[data-ui-css-component="treeview"] [type=checkbox] {
+  display: none;
+}
+[data-ui-css-component="treeview"] ul {
+  padding: 0 0 0 20px;
+  display: none;
+  list-style: none;
+}
+[data-ui-css-component="treeview"] ul:first-child {
+  padding-left: 0;
+}
+[data-ui-css-component="treeview"] li {
+  padding: 0;
+}
+[data-ui-css-component="treeview"] li span {
+  margin: 2px 0;
+  display: list-item;
+  list-style: none;
+}
+[data-ui-css-component="treeview"] label {
+  display: inline-block;
+  transition: 0.2s;
+  padding-right: 10px;
+  margin: 5px 0;
+  height: 20px;
+  line-height: 20px;
+  cursor: pointer;
+}
+[data-ui-css-component="treeview"] label::before {
+  display: inline-block;
+  margin-right: 5px;
+  width: 20px;
+  height: 20px;
+  text-align: center;
+  background: #6aa84f;
+  color: #000;
+}
+[data-ui-css-component="treeview"] ul:first-child, [data-ui-css-component="treeview"] [type=checkbox]:checked ~ ul {
+  display: block;
+}
+[data-ui-css-component="treeview"] [type=checkbox]:checked ~ label::before {
+  content: "-";
+}
+[data-ui-css-component="treeview"] [type=checkbox]:not(:checked) ~ label::before {
+  content: "+";
+}

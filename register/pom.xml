@@ -1,22 +1,23 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.nolaria</groupId>
-  <artifactId>svconverter</artifactId>
-  <version>2.0.0</version>
-  <name>Google Sites source converter and bug fixing</name>
+  <artifactId>register</artifactId>
+  <version>1.0.0</version>
+  <name>Page Registration</name>
+  <description>Register all pages in the specified site.</description>
 
   <properties>
      <java.version>11</java.version>
      <maven.compiler.source>11</maven.compiler.source>
      <maven.compiler.target>11</maven.compiler.target>
   </properties>
-
+  
   <dependencies>
-	<!-- Registry Classes -->
+	<!-- The MariaDB driver -->
 	<dependency> 
-		<groupId>com.nolaria</groupId>
-		<artifactId>register</artifactId>
-		<version>1.0.0</version>
-	</dependency>
+		<groupId>org.mariadb.jdbc</groupId>
+		<artifactId>mariadb-java-client</artifactId>
+		<version>2.7.3</version>
+	</dependency>  
   </dependencies>
 </project>
