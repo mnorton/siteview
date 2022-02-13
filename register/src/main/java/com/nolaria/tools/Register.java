@@ -70,13 +70,13 @@ public class Register {
 			register.pageRegistry = new PageRegistry(register.conn, true);
 			
 			// ===================  Test =============================
-			System.out.println("Page Registry Tests");
-			register.testSuccessiveGetPage();
-			register.testRegisterPage();
+			//System.out.println("Page Registry Tests");
+			//register.testSuccessiveGetPage();
+			//register.testRegisterPage();
 
 			// =================  Operation ==========================
 			// Scan a site and register pages not already registered.
-			//register.scanAndRegister(DEFAULT_SITE);
+			register.scanAndRegister(DEFAULT_SITE);
 
 		} catch (Exception ex) {
 			ex.printStackTrace();

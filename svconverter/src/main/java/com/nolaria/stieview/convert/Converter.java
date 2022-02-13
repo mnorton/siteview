@@ -15,11 +15,14 @@ import java.util.UUID;
 /**
  * @author markjnorton@gmail.com
  *
- *         This is a utility application that takes path name pointer to the
- *         root of a file system containing HTML files down loaded from Google
- *         Sites. The app converts these files by extracting the core content
- *         and adding additional mark up to create a set of pages that can be
- *         viewed locally.
+ *	This is a utility application that takes path name pointer to the
+ *	root of a file system containing HTML files down loaded from Google
+ *	Sites. The app converts these files by extracting the core content
+ *	and adding additional mark up to create a set of pages that can be
+ *	viewed locally.
+ *
+ *	Updated in Jan. 2022 to include updates made in fixinplace.  Thus, most known 
+ *	HTML issues have been fixed in the converter as well.
  */
 public class Converter {
 	// Constants.
@@ -38,6 +41,7 @@ public class Converter {
 
 	// Change these to be the names of the source and target site.
 	public static final String SRC_SITE = "nolariaplanes";
+	public static final String SRC_TITLE = " - nolaria-planes";
 	public static final String TARGET_SITE = "planes";
 
 	// Derived file paths and URLs based on the site name above.
@@ -549,7 +553,11 @@ public class Converter {
 				// Create the reference fix. The URL prefix is added to make the images viewable
 				// in BlueGriffin.
 				int slashOff = srcParameter.indexOf("/");
-				String fixedRef = HOST + FileSep + TARGET_SITE + "/" + MEDIA_DIR_NAME + "/"
+				
+				//	TODO:  Fix hard coded site name.
+				//String fixedRef = HOST + FileSep + TARGET_SITE + "/" + MEDIA_DIR_NAME + "/"
+				String fixedRef = HOST + FileSep + "nolaria" + "/" + MEDIA_DIR_NAME + "/"
+
 						+ srcParameter.substring(slashOff + 1, srcParameter.length());
 
 				// System.out.println("---------- Fixed Ref: "+fixedRef);
@@ -730,6 +738,13 @@ public class Converter {
 	 * Page name is the same as the original title.
 	 * New page title converts dashes to spaces and capitalizes words.
 	 * 
+	 * Examples to handle:
+	 * 	1. place (no dashes) ==> Place
+	 * 	2. place-1 (single dash) ==> Place 1
+	 * 	3. place--1 (two dashes) ==> Place 1
+	 * 	4. place - 1 (space dash space) ==> Place - 1
+	 * 	5. place---1 (three dashers) ==> Place - 1
+	 * 
 	 * @param content of page
 	 * @return a map containing title and name entries.
 	 */
@@ -740,40 +755,24 @@ public class Converter {
 		int titleStart = content.indexOf("<title>");
 		int titleEnd = content.indexOf("</title>");
 		String title = content.substring(titleStart+"<title>".length(), titleEnd);
-		
-		String[]bits = title.split(" - ");
-		
-		//	Convert the name into a title by replacing dashes with spaces.
-		if (bits.length == 2)
-			title = bits[0];
-		else
-			title = "Unknown";
+		System.out.print("Raw page title: "+title);
 
-		title = title.replaceAll("---", " ~ ");
+		//	Strip off the site title.
+		title = title.replaceAll(SRC_TITLE, "");
+
+		//	Fix dashes to make words in the title.
+		title = title.replaceAll(" - ", " ");
+		title = title.replaceAll("---", " ");
+		title = title.replaceAll("--", " ");
 		title = title.replaceAll("-", " ");
-		title = title.replaceAll("~", " ");
 		
-		//System.out.println("Pre-capitalized title: "+title);
 		
-		//	Capitalize words.
-		String[] parts = title.split(" ");
-		String capTitle = "";
-		for (String word : parts) {
-			if (word.length() > 0) {
-				char cap = Character.toUpperCase(word.charAt(0));
-				String capWord = cap + word.substring(1, word.length());
-				//System.out.println("\tCap: "+cap+" word: "+capWord);
-				capTitle += capWord + " ";
-			}
-			else
-				capTitle += " ";
-		}
-		capTitle = capTitle.trim();
+		System.out.println(" == Final Title: "+title);
 
 		//System.out.println("Final title: "+capTitle);
 
-		properties.put("title", capTitle);
-		//properties.put("name", name);
+		title = this.capitalize(title);
+		properties.put("title", title);
 		
 		return properties;
 	}
@@ -795,10 +794,11 @@ public class Converter {
 		if (ContentOnly) {
 			// Add header block with title and meta tags.
 			sb.append("<!DOCTYPE html>\n");
-			sb.append("<html lang=\"en-us\"");
+			sb.append("<html lang=\"en-us\">\n");
 			sb.append("<head>\n"); // Fixed from <header>
 			//	This style sheet reference allows BlueGriffin to style text during edit.
 			
+			// TODO:  Fix hard coded CSS reference.
 			//sb.append("\t<link rel=\"stylesheet\" href=\"/" + STYLE_SHEET_URL + "\">\n");
 			sb.append("\t<link rel=\"stylesheet\" href=\"http://localhost:8080/nolaria/green.css\">\n");
 			sb.append("\t<title>"+title+"</title>\n");
@@ -945,6 +945,7 @@ public class Converter {
 	}
 
 	/**
+	 * TODO:  Move this to the com.nolaria.sv.db.Util class
 	 * Return a string with a set of tabs equal to the depth passed.
 	 * 
 	 * @param depth
@@ -955,5 +956,34 @@ public class Converter {
 		for (int i = 0; i < depth; i++)
 			sb.append("\t");
 		return sb.toString();
+	}
+	
+	/**
+	 * TODO:  Move this to the com.nolaria.sv.db.Util class
+	 * Return a string where each word is capitalized.
+	 * For example "pleasure dome 1" becomes "Pleasure Dome 1"
+	 * 
+	 * Because words are isolated by a space, dashed strings are treated as a single word.
+	 * Thus "pleasure dome-1" becomes "Pleasure Dome-1"
+	 * 
+	 * @param title
+	 * @return capitalized title
+	 */
+	public String capitalize(String title) {
+		//	Capitalize words.
+		String[] parts = title.split(" ");
+		String capTitle = "";
+		for (String word : parts) {
+			if (word.length() > 0) {
+				char cap = Character.toUpperCase(word.charAt(0));
+				String capWord = cap + word.substring(1, word.length());
+				//System.out.println("\tCap: "+cap+" word: "+capWord);
+				capTitle += capWord + " ";
+			}
+			else
+				capTitle += " ";
+		}
+		capTitle = capTitle.trim();
+		return capTitle;
 	}
 }
