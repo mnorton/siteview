@@ -52,7 +52,7 @@ public class SiteRegistry {
 			String name = rs.getString("name");
 			String path = rs.getString("path");
 			
-			Site site = new Site(name, path);
+			Site site = new Site(id, name, path);
 			
 			sites.add(site);			
 		}
