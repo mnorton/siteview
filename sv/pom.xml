@@ -35,7 +35,7 @@
 	<dependency> 
 		<groupId>com.nolaria</groupId>
 		<artifactId>register</artifactId>
-		<version>1.0.0</version>
+		<version>1.0.1</version>
 	</dependency>
 
     <!--  Not currently using JUnit testing.

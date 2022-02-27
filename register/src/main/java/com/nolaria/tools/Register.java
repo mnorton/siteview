@@ -6,7 +6,6 @@ package com.nolaria.tools;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -98,10 +97,9 @@ public class Register {
 	 *	approach:  two pages might have the same file name, which would cause the second entry to throw 
 	 *	a SQL exception (record already exists).
 	 *
-	 *	TODO:  Do I want to also update changes to title and name?
 	 */
-	public void scanAndRegister(String site) throws SQLException {
-		System.out.println("\n============================ Register Pages =============================\n");
+	public void scanAndRegister(String site) throws PageException {
+		System.out.println("\n============  Register Pages ==============\n");
 		System.out.println("Scanning this site: "+site);
 		
 		//	Get the list of all currently registered tables.  Speeds up checks for unregistered files.
@@ -136,7 +134,7 @@ public class Register {
 	 * 
 	 * @return nav content
 	 */
-	private void directoryWalker (int level, String relPath, StringBuffer sb) {		
+	private void directoryWalker (int level, String relPath, StringBuffer sb) throws PageException {		
 		//	Convert relative path to a full path.
 		String dirPath = Util.FILE_ROOT + relPath;
 		File dirFile = new File(dirPath);
@@ -204,7 +202,7 @@ public class Register {
 	 * @param relFilePath
 	 * @return status string
 	 */
-	private String register(String relFilePath) {
+	private String register(String relFilePath) throws PageException{
 		String status = "???";
 		
 		//	The relPath has the site removed from it's front.
@@ -246,14 +244,15 @@ public class Register {
 			
 			//	Register the page.
 			try {
-				this.pageRegistry.registerPage(info.pid, DEFAULT_SITE, info.name, fileName, path);
+				//TODO:  change info.name to title.
+				this.pageRegistry.registerPage(info.pid, DEFAULT_SITE, info.title, fileName, path);
 				status = "REGISTERED";
 				this.registerCount++;
 			}
-			catch (SQLException sql) {
+			catch (PageException pg) {
 				status = "FAILED";
 				this.failedRegistrations.add(relFilePath);
-				System.err.println(sql.getCause());
+				System.err.println(pg.getCause());
 			}
 		}
 		
@@ -263,24 +262,24 @@ public class Register {
 
 	
 	/****************************************************************
-	 *                    Operations                                *
+	 *                    Test Operations                           *
 	 ****************************************************************/
 
 	/**
 	 * Get two pages in a row from the Page Registry.
 	 */
 	@SuppressWarnings(value = { "unused" })
-	public void testSuccessiveGetPage() {
+	public void testSuccessiveGetPage()  {
 		
 		try {
 			PageId page1 = pageRegistry.getPage(ALLEGORY_ID);
-			//System.out.println("Got the page called "+page1.getName());
+			//System.out.println("Got the page called "+page1.getTitle());
 			PageId page2 = pageRegistry.getPage(ALTAMEK_ID);
-			//System.out.println("Got the page called "+page2.getName());
+			//System.out.println("Got the page called "+page2.getTitle());
 		}
-		catch (SQLException sql) {
+		catch (PageException pg) {
 			System.out.println("\ttestSuccessiveGetPage: FAILED");
-			sql.printStackTrace();
+			pg.printStackTrace();
 		}
 		
 		System.out.println("\ttestSuccessiveGetPage:  PASS");
@@ -311,9 +310,9 @@ public class Register {
 			//	Delete the test page created.
 			pageRegistry.deletePage(pid);
 		}
-		catch (SQLException sql) {
+		catch (PageException pg) {
 			System.out.println("\ttestRegisterPage: FAILED");
-			sql.printStackTrace();
+			pg.printStackTrace();
 		}
 		System.out.println("\ttestRegisterPage:  PASS");	
 	}
