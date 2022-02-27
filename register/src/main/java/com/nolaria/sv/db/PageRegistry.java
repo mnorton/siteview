@@ -15,30 +15,13 @@ import java.util.Vector;
  * 
  * @author markjnorton@gmail.com
  */
-public class PageRegistry {
-	private Connection connector =null;
-	
+public class PageRegistry {	
 	private static String PAGE_BY_ID_QUERY = "select site,title,file,path from page_registry where id=";
 	private static String ALL_PAGES_QUERY = "select id,site,title,file,path from page_registry where archived!='T'";
 	// insert into page_registry (id,site,title,file,path) values ('654b7d10-a431-4cec-9d1d-4262209c9b56','nolaria','Books','books.html','/home');
 	private static String REGISTER_PAGE_QUERY = "insert into page_registry (id,site,title,file,path) values ";
 	private static String PAGE_DELETE_BY_ID_QUERY = "delete from page_registry where id=";
-	
-	public static Boolean Delete = false;	//	If false, this prevents the deletePage method from deleting pages.
-
-
-	/**
-	 * Constructor given a connector.
-	 * @param connector
-	 */
-	public PageRegistry (Connection connector) {
-		this.connector = connector;
-	}
-	public PageRegistry (Connection connector, Boolean delete) {
-		this.connector = connector;
-		Delete = delete;
-	}
-	
+		
 	/**
 	 * Get a list of all registered pages.
 	 * 
@@ -48,9 +31,11 @@ public class PageRegistry {
 	public List<PageId> getAllPages()  throws PageException {
 		List<PageId> pages = new Vector<PageId>();
 		
-		this.checkConnector("get all");
+		//this.checkConnector("get all");
 		
-		try(Statement stmt = this.connector.createStatement())  {		
+		Connection connector = RegistryConnector.getConnector();
+		
+		try(Statement stmt = connector.createStatement())  {		
 			ResultSet rs = stmt.executeQuery(ALL_PAGES_QUERY);
 			rs.beforeFirst();
 			
@@ -86,9 +71,11 @@ public class PageRegistry {
 	public PageId getPage(String id) throws PageException {
 		PageId page = null;
 		
-		this.checkConnector("get single");
+		//this.checkConnector("get single");
 		
-		try(Statement stmt = this.connector.createStatement())  {		
+		Connection connector = RegistryConnector.getConnector();
+
+		try(Statement stmt = connector.createStatement())  {		
 			ResultSet rs = stmt.executeQuery(PAGE_BY_ID_QUERY+"'"+id+"'");
 			
 			//	If there is no first, page is returned as null.
@@ -123,13 +110,15 @@ public class PageRegistry {
 		//	Escape apostrophes in the title.
 		title = title.replace("'", "''");
 		
-		this.checkConnector("register");
+		//this.checkConnector("register");
 
 		//	Assemble the insert query.
 		String query = REGISTER_PAGE_QUERY + "('"+id+"','"+site+"','"+title+"','"+file+"','"+path+"')";
 		//System.out.println(query);
 		
-		try(Statement stmt = this.connector.createStatement())  {		
+		Connection connector = RegistryConnector.getConnector();
+
+		try(Statement stmt = connector.createStatement())  {		
 			stmt.execute(query);
 		}
 		catch (SQLException sql) {
@@ -138,28 +127,33 @@ public class PageRegistry {
 	}
 	
 	/**
-	 * If enabled, delete the page specified by id.
-	 * Delete enable is a flag in the PageRegistry class.
+	 * This method always performs a soft delete by marking the archived field to true.
 	 * 
-	 * @param id of page to delete
+	 * @param id of page to archive
 	 * @throws PageException
 	 */
 	public void deletePage(String id) throws PageException {
-		//	Check to see if delete is enable.
-		if (Delete == false) {
-			System.out.println("Delete page is not enabled.  Unable to delete: "+id);
-			return;
-		}
-		
-		this.checkConnector("delete");
+		//this.checkConnector("delete");
 		String query = PAGE_DELETE_BY_ID_QUERY +"'"+id+"'";
 		
-		try(Statement stmt = this.connector.createStatement())  {		
+		Connection connector = RegistryConnector.getConnector();
+		
+		try(Statement stmt = connector.createStatement())  {		
 			stmt.execute(query);
 		}
 		catch (SQLException sql) {
 			throw new PageException(sql.getMessage(), sql.getCause());
 		}	
+	}
+	
+	/**
+	 * This method always performs a hard delete, removing the record associated with the page id passed.
+	 * 
+	 * @param id of page to delete
+	 * @throws PageException
+	 */
+	public void hardDeletePage(String id) throws PageException {
+		//	TODO:	Write this one.
 	}
 	
 	/**
@@ -170,6 +164,7 @@ public class PageRegistry {
 	 * 
 	 * @throws PageException
 	 */
+	/*
 	private boolean checkConnector(String operation) throws PageException {
 		try {
 			if (!this.connector.isValid(1)) {
@@ -185,4 +180,5 @@ public class PageRegistry {
 			throw new PageException(sql.getMessage(), sql.getCause());
 		}	
 	}
+	*/
 }
