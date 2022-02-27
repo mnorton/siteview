@@ -5,11 +5,10 @@ package com.nolaria.sv;
 
 import java.io.File;
 import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+//import java.util.Properties;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -34,9 +33,6 @@ public class PageIdFramework {
 	public static int MAX_NAV_DEPTH = 100;
 	public static String FILE_ROOT = "D:\\apache-tomcat-9.0.40\\webapps";
 	
-	private static final String DB_URL = "jdbc:mysql://localhost/site_view";
-	private static final String CREDS = "?user=root&password=admin";
-
 	private static SiteRegistry siteRegistry = null;
 	private static PageRegistry pageRegistry = null;
 
@@ -73,62 +69,46 @@ public class PageIdFramework {
 		
 		System.out.println ("Page request for: "+this.siteName+" - "+this.pageId);
 		
-		//	Open a database connection to access associated tables.
-		Connection conn = null;
-		try {
-			//	Open the site and page registries.
-			Class.forName("org.mariadb.jdbc.Driver");
-			  
-			//  Create the registry objects.
-			conn = DriverManager.getConnection(DB_URL + CREDS);
-			
-			siteRegistry = new SiteRegistry(conn);
-			pageRegistry = new PageRegistry(conn);
-			
-			System.out.println("\n============================ Site Viewer =============================\n");
-			
-			this.site = siteRegistry.getSiteByName(this.siteName);
-			if (this.site == null )
-				this.error = "Site not found for: "+this.siteName;
-			else
-				System.out.println ("Site: "+site.toString());
-			
-			this.page = pageRegistry.getPage(this.pageId);
-			if (this.page == null)
-				this.error = "Page not found for: "+this.pageId;
-			else
-				System.out.println ("Page: "+this.page.toString());
-			
-			//	Create a map of filenames to pages.  Allows lookup of pages by file name from directory walk.
-			List<PageId> pageList = pageRegistry.getAllPages();
-			for (PageId lookupPage : pageList) {
-				String key = lookupPage.getSite() + "/" + lookupPage.getPath() + "/" + lookupPage.getFile();
-				this.pages.put(key, lookupPage);
-			}
-			
-			//	Some debugging logic for the page lookup table.
-			/*
-			System.out.println("Page lookup table size: "+this.pages.size());
-			String testPageName = "nolaria//ab-secmil.html";
-			PageId testPage = this.pages.get(testPageName);
-			if (testPage == null)
-				System.out.println("Unable to lookup "+testPageName);
-			else
-				System.out.println("Lookup for "+testPageName+" gives an id of: "+testPage.getId());
-			
-			System.out.println();
-			*/
+		//	Create the Page and Site Registries.
+		siteRegistry = new SiteRegistry();
+		pageRegistry = new PageRegistry();
+		
+		System.out.println("\n============================ Site Viewer =============================\n");
+		
+		this.site = siteRegistry.getSiteByName(this.siteName);
+		if (this.site == null )
+			this.error = "Site not found for: "+this.siteName;
+		else
+			System.out.println ("Site: "+site.toString());
+		
+		this.page = pageRegistry.getPage(this.pageId);
+		if (this.page == null) {
+			System.out.println("Page not found for:  "+this.pageId);
+			this.error = "Page not found for: "+this.pageId;
+			return;
 		}
-		catch (Exception ex) {
-			this.error = ex.getMessage();
-			ex.printStackTrace();
-		}
-		finally {
-			conn.close();
+		else
+			System.out.println ("Page: "+this.page.toString());
+		
+		//	Create a map of filenames to pages.  Allows lookup of pages by file name from directory walk.
+		List<PageId> pageList = pageRegistry.getAllPages();
+		for (PageId lookupPage : pageList) {
+			String key = lookupPage.getSite() + "/" + lookupPage.getPath() + "/" + lookupPage.getFile();
+			this.pages.put(key, lookupPage);
 		}
 		
+		//	Some debugging logic for the page lookup table.
+		/*
+		System.out.println("Page lookup table size: "+this.pages.size());
+		String testPageName = "nolaria//ab-secmil.html";
+		PageId testPage = this.pages.get(testPageName);
+		if (testPage == null)
+			System.out.println("Unable to lookup "+testPageName);
+		else
+			System.out.println("Lookup for "+testPageName+" gives an id of: "+testPage.getId());
 		
-		
+		System.out.println();
+		*/		
 	}
 	
 	/**
@@ -189,6 +169,8 @@ public class PageIdFramework {
 	 * @return HTML
 	 */
 	public String getContent() {
+		if (this.page == null)
+			return "<h1>Page object is null</h1>\n";
 		return this.page.getIFrame();
 	}
 	
@@ -198,6 +180,8 @@ public class PageIdFramework {
 	 * @return HTML
 	 */
 	public String getNavigation() {
+		if (this.page == null)
+			return "<h1>Page object is null</h1>\n";
 		return this.getDropNavigation();
 	}
 
@@ -231,6 +215,20 @@ public class PageIdFramework {
 	private void directoryWalkerDrop (int level, String relPath, StringBuffer sb) {
 		//System.out.println("Level: " + level + ", Rel Path:  ["+relPath+"]");
 		
+		//	Check for a missing page.
+		if (this.page == null) {
+			System.out.println("directoryWalkerDrop:  Page object is missing.");
+			return;
+		}
+		
+		//	Check for a missing path.
+		String pagePath = this.page.getPath();
+		if (pagePath == null) {
+			sb.append("\tPath is null for page: "+page.toString()+"<br>\n");
+			return;			
+		}
+		
+		//	Otherwise, split it.  If the path is empty, relParts[0] will empty, which is okay.
 		String[] relParts = this.page.getPath().split("/");
 		
 		//	Convert relative path to a full path.
@@ -420,18 +418,20 @@ public class PageIdFramework {
 		
 		String currentPageFile = this.page.getFile();
 		String node = currentPageFile.substring(0, currentPageFile.indexOf(".html"));
-		String file = newTitle.replaceAll(" ", "-").toLowerCase() + node +".html";
+		//String file = newTitle.replaceAll(" ", "-").toLowerCase() + node +".html";
+		String file = newTitle.replaceAll(" ", "-").toLowerCase() +".html";
 		String pid = UUID.randomUUID().toString();
 
-		System.out.println("Create a new page: "+newTitle+ " in file: "+file);
+		System.out.println("New page to create: "+newTitle+ " in file: "+file);
 
 		//	Register the new page.
 		try {
 			pageRegistry.registerPage(pid, this.siteName, newTitle, file, path);
 		}
-		catch (SQLException sql) {
+		catch (PageException pg) {
 			System.out.println("Unable to create page "+newTitle);
-			System.out.println(sql.getMessage());
+			System.out.println("SQL Error:  "+pg.getMessage());
+			return;
 		}
 
 		//	Create the HTML content of the new page.
