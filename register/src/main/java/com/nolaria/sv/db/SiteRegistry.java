@@ -16,21 +16,10 @@ import java.util.Vector;
  * @author markjnorton
  *
  */
-public class SiteRegistry {
-	private Connection connector =null;
-	
+public class SiteRegistry {	
 	private static String ALL_SITES_QUERY = "select id,name,path from site_registry";
 	private static String SITE_QUERY_NAME = "select id,path from site_registry where name=";
 	private static String SITE_QUERY_ID = "select name,path from site_registry where id=";
-	
-	/**
-	 * Constructor given a JDBC connector.
-	 * 
-	 * @param connector
-	 */
-	public SiteRegistry(Connection connector) {
-		this.connector = connector;
-	}
 	
 	/**
 	 * Get the list of registered sites.
@@ -41,7 +30,9 @@ public class SiteRegistry {
 	public List<Site> getSites() throws PageException {
 		Vector<Site> sites = new Vector<Site>();
 		
-		try(Statement stmt = this.connector.createStatement())  {		
+		Connection connector = RegistryConnector.getConnector();
+		
+		try(Statement stmt = connector.createStatement())  {		
 			ResultSet rs = stmt.executeQuery(ALL_SITES_QUERY);
 			rs.beforeFirst();
 	
@@ -74,7 +65,9 @@ public class SiteRegistry {
 	public Site getSiteByName(String name) throws PageException {
 		Site site = null;
 
-		try(Statement stmt = this.connector.createStatement())  {		
+		Connection connector = RegistryConnector.getConnector();
+
+		try(Statement stmt = connector.createStatement())  {		
 			ResultSet rs = stmt.executeQuery(SITE_QUERY_NAME+"'"+name+"'");
 				//	If there is no first, site is returned as null.
 				if (rs.first()) {
@@ -100,7 +93,9 @@ public class SiteRegistry {
 	public Site getSiteById(String id) throws PageException {
 		Site site = null;
 
-		try(Statement stmt = this.connector.createStatement())  {		
+		Connection connector = RegistryConnector.getConnector();
+
+		try(Statement stmt = connector.createStatement())  {		
 			ResultSet rs = stmt.executeQuery(SITE_QUERY_ID+"'"+id+"'");
 	
 			//	If there is no first, site is returned as null.

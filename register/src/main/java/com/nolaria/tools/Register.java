@@ -5,7 +5,6 @@ package com.nolaria.tools;
 
 import java.io.File;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -21,8 +20,6 @@ import com.nolaria.sv.db.*;
  *
  */
 public class Register {
-	private static final String DB_URL = "jdbc:mysql://localhost/site_view";
-	private static final String CREDS = "?user=root&password=admin";
 	private static final String DEFAULT_SITE = "nolaria";
 	
 	private static String ALLEGORY_ID = "7cbd34d1-72e3-43b9-b35d-4129ca489547";
@@ -58,15 +55,9 @@ public class Register {
 		  
 		// Open a database connection to access associated tables.
 		try {
-			// Open the site and page registries.
-			Class.forName("org.mariadb.jdbc.Driver");
-
-			// Create the registry objects.
-			register.conn = DriverManager.getConnection(DB_URL + CREDS);
-
 			// Create the site and page registry objects.
-			register.siteRegistry = new SiteRegistry(register.conn);
-			register.pageRegistry = new PageRegistry(register.conn, true);
+			register.siteRegistry = new SiteRegistry();
+			register.pageRegistry = new PageRegistry();
 			
 			// ===================  Test =============================
 			//System.out.println("Page Registry Tests");
@@ -244,7 +235,6 @@ public class Register {
 			
 			//	Register the page.
 			try {
-				//TODO:  change info.name to title.
 				this.pageRegistry.registerPage(info.pid, DEFAULT_SITE, info.title, fileName, path);
 				status = "REGISTERED";
 				this.registerCount++;
