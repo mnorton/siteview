@@ -18,7 +18,7 @@ import java.io.File;
 public class PageId {
 	public String id;
 	public String site;
-	public String name;
+	public String title;
 	public String file;
 	public String path;
 	
@@ -34,7 +34,7 @@ public class PageId {
 	public PageId (String id, String site, String name, String file, String path) {
 		this.id = id;		//	A UUID for the page.
 		this.site = site;	//	Web site associated with this page.
-		this.name = name;	//	Web page title.
+		this.title = name;	//	Web page title.
 		this.file = file;	//	File name.
 		this.path = path;	//	Path to file name relative to Tomcat webapps dir.
 	}
@@ -59,8 +59,8 @@ public class PageId {
 	 * Get the name (title) of this page.
 	 * @return name string
 	 */
-	public String getName() {
-		return this.name;
+	public String getTitle() {
+		return this.title;
 	}
 
 	/**
@@ -138,7 +138,7 @@ public class PageId {
 	 */
 	public String getIFrame() {
 		//	This is the mark-up that puts an iFrame into the content pane.
-		return "\t<iframe src='"+this.getDirectUrl()+"' title='"+this.getName()+"'></iframe>\n";
+		return "\t<iframe src='"+this.getDirectUrl()+"' title='"+this.getTitle()+"'></iframe>\n";
 	}
 
 	/**
@@ -148,7 +148,7 @@ public class PageId {
 	public String toString() {
 		StringBuffer sb = new StringBuffer();
 		
-		sb.append(name + ": ");
+		sb.append(title + ": ");
 		sb.append("is identified by: "+id+", ");
 		sb.append("in site: "+site);
 		//sb.append("located in: "+this.getFullFileName());

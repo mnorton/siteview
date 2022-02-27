@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.IOException;
 //import java.lang.System.Logger.Level;
 import java.util.UUID;
+import com.nolaria.sv.db.PageInfo;
 
 import com.nolaria.sv.PageFramework.FileType;
 

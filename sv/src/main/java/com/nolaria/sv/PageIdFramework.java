@@ -6,10 +6,10 @@ package com.nolaria.sv;
 import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -81,6 +81,8 @@ public class PageIdFramework {
 			  
 			//  Create the registry objects.
 			conn = DriverManager.getConnection(DB_URL + CREDS);
+			Properties dbProps = conn.getClientInfo();
+			System.out.println("\nConnector properties:  "+dbProps.toString()+"\n\n");
 			
 			siteRegistry = new SiteRegistry(conn);
 			pageRegistry = new PageRegistry(conn);
@@ -94,8 +96,11 @@ public class PageIdFramework {
 				System.out.println ("Site: "+site.toString());
 			
 			this.page = pageRegistry.getPage(this.pageId);
-			if (this.page == null)
+			if (this.page == null) {
+				System.out.println("Page not found for:  "+this.pageId);
 				this.error = "Page not found for: "+this.pageId;
+				return;
+			}
 			else
 				System.out.println ("Page: "+this.page.toString());
 			
@@ -189,6 +194,8 @@ public class PageIdFramework {
 	 * @return HTML
 	 */
 	public String getContent() {
+		if (this.page == null)
+			return "<h1>Page object is null</h1>\n";
 		return this.page.getIFrame();
 	}
 	
@@ -198,6 +205,8 @@ public class PageIdFramework {
 	 * @return HTML
 	 */
 	public String getNavigation() {
+		if (this.page == null)
+			return "<h1>Page object is null</h1>\n";
 		return this.getDropNavigation();
 	}
 
@@ -231,6 +240,20 @@ public class PageIdFramework {
 	private void directoryWalkerDrop (int level, String relPath, StringBuffer sb) {
 		//System.out.println("Level: " + level + ", Rel Path:  ["+relPath+"]");
 		
+		//	Check for a missing page.
+		if (this.page == null) {
+			System.out.println("directoryWalkerDrop:  Page object is missing.");
+			return;
+		}
+		
+		//	Check for a missing path.
+		String pagePath = this.page.getPath();
+		if (pagePath == null) {
+			sb.append("\tPath is null for page: "+page.toString()+"<br>\n");
+			return;			
+		}
+		
+		//	Otherwise, split it.  If the path is empty, relParts[0] will empty, which is okay.
 		String[] relParts = this.page.getPath().split("/");
 		
 		//	Convert relative path to a full path.
@@ -420,18 +443,20 @@ public class PageIdFramework {
 		
 		String currentPageFile = this.page.getFile();
 		String node = currentPageFile.substring(0, currentPageFile.indexOf(".html"));
-		String file = newTitle.replaceAll(" ", "-").toLowerCase() + node +".html";
+		//String file = newTitle.replaceAll(" ", "-").toLowerCase() + node +".html";
+		String file = newTitle.replaceAll(" ", "-").toLowerCase() +".html";
 		String pid = UUID.randomUUID().toString();
 
-		System.out.println("Create a new page: "+newTitle+ " in file: "+file);
+		System.out.println("New page to create: "+newTitle+ " in file: "+file);
 
 		//	Register the new page.
 		try {
 			pageRegistry.registerPage(pid, this.siteName, newTitle, file, path);
 		}
-		catch (SQLException sql) {
+		catch (PageException pg) {
 			System.out.println("Unable to create page "+newTitle);
-			System.out.println(sql.getMessage());
+			System.out.println("SQL Error:  "+pg.getMessage());
+			return;
 		}
 
 		//	Create the HTML content of the new page.

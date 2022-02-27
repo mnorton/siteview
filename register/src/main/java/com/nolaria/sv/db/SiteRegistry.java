@@ -36,28 +36,30 @@ public class SiteRegistry {
 	 * Get the list of registered sites.
 	 * 
 	 * @return List of sites
-	 * @throws SQLException
+	 * @throws PageException
 	 */
-	public List<Site> getSites() throws SQLException {
+	public List<Site> getSites() throws PageException {
 		Vector<Site> sites = new Vector<Site>();
 		
-		Statement stmt = this.connector.createStatement();
-		ResultSet rs = stmt.executeQuery(ALL_SITES_QUERY);
-		rs.beforeFirst();
-
-		// Extract data from result set
-		while (rs.next()) {
-			// Retrieve by column name
-			String id = rs.getString("id");
-			String name = rs.getString("name");
-			String path = rs.getString("path");
-			
-			Site site = new Site(name, path);
-			
-			sites.add(site);			
+		try(Statement stmt = this.connector.createStatement())  {		
+			ResultSet rs = stmt.executeQuery(ALL_SITES_QUERY);
+			rs.beforeFirst();
+	
+			// Extract data from result set
+			while (rs.next()) {
+				// Retrieve by column name
+				String id = rs.getString("id");
+				String name = rs.getString("name");
+				String path = rs.getString("path");
+				
+				Site site = new Site(name, path);
+				
+				sites.add(site);			
+			}
 		}
-		rs.close();
-		stmt.close();
+		catch (SQLException sql) {
+			throw new PageException(sql.getMessage(), sql.getCause());
+		}	
 		
 		return sites;
 	}
@@ -67,21 +69,23 @@ public class SiteRegistry {
 	 * 
 	 * @param name of site
 	 * @return Site object
-	 * @throws SQLException
+	 * @throws PageException
 	 */
-	public Site getSiteByName(String name) throws SQLException {
+	public Site getSiteByName(String name) throws PageException {
 		Site site = null;
 
-		Statement stmt = this.connector.createStatement();
-		ResultSet rs = stmt.executeQuery(SITE_QUERY_NAME+"'"+name+"'");
-		//rs.beforeFirst();
-		
-		//	If there is no first, site is returned as null.
-		if (rs.first()) {
-			String id = rs.getString("id");
-			String path = rs.getString("path");
-			site = new Site(id, name, path);
+		try(Statement stmt = this.connector.createStatement())  {		
+			ResultSet rs = stmt.executeQuery(SITE_QUERY_NAME+"'"+name+"'");
+				//	If there is no first, site is returned as null.
+				if (rs.first()) {
+					String id = rs.getString("id");
+					String path = rs.getString("path");
+					site = new Site(id, name, path);
+				}
 		}
+		catch (SQLException sql) {
+			throw new PageException(sql.getMessage(), sql.getCause());
+		}	
 		
 		return site;
 	}
@@ -91,20 +95,24 @@ public class SiteRegistry {
 	 * 
 	 * @param id of site
 	 * @return Site object
-	 * @throws SQLException
+	 * @throws PageException
 	 */
-	public Site getSiteById(String id) throws SQLException {
+	public Site getSiteById(String id) throws PageException {
 		Site site = null;
 
-		Statement stmt = this.connector.createStatement();
-		ResultSet rs = stmt.executeQuery(SITE_QUERY_ID+"'"+id+"'");
-
-		//	If there is no first, site is returned as null.
-		if (rs.first()) {
-			String name = rs.getString("name");
-			String path = rs.getString("path");
-			site = new Site(id, name, path);
+		try(Statement stmt = this.connector.createStatement())  {		
+			ResultSet rs = stmt.executeQuery(SITE_QUERY_ID+"'"+id+"'");
+	
+			//	If there is no first, site is returned as null.
+			if (rs.first()) {
+				String name = rs.getString("name");
+				String path = rs.getString("path");
+				site = new Site(id, name, path);
+			}
 		}
+		catch (SQLException sql) {
+			throw new PageException(sql.getMessage(), sql.getCause());
+		}	
 
 		return site;
 	}
