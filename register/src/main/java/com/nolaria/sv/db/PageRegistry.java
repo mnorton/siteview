@@ -114,7 +114,7 @@ public class PageRegistry {
 
 		//	Assemble the insert query.
 		String query = REGISTER_PAGE_QUERY + "('"+id+"','"+site+"','"+title+"','"+file+"','"+path+"')";
-		//System.out.println(query);
+		System.out.println(query);
 		
 		Connection connector = RegistryConnector.getConnector();
 
@@ -125,6 +125,46 @@ public class PageRegistry {
 			throw new PageException(sql.getMessage(), sql.getCause());
 		}
 	}
+
+	/**
+	 * Update the site, title, file, and path of the page given by id.
+	 * Note:  old values must be passed if not changed.
+	 * 
+	 * @param id of the page to update
+	 * @param site - new site name.
+	 * @param title - new title name.
+	 * @param file - new file name.
+	 * @param path - new path.
+	 * @throws PageException
+	 */
+	public void updatePage(String id, String site, String title, String file, String path) throws PageException {
+		//	Escape apostrophes in the title.
+		title = title.replace("'", "''");
+		
+		//this.checkConnector("register");
+
+		//	Assemble the update query.
+		StringBuffer sb = new StringBuffer();
+		sb.append("UPDATE page_registry SET ");
+		sb.append("site='"+site);
+		sb.append("', title='"+title);
+		sb.append("', file='"+file);
+		sb.append("', path='"+path);
+		sb.append("' where id='"+id+"';");
+		String updatePageQuery = sb.toString();
+		
+		//System.out.println("Page Update Query:  "+updatePageQuery);
+		
+		Connection connector = RegistryConnector.getConnector();
+
+		try(Statement stmt = connector.createStatement())  {		
+			stmt.execute(updatePageQuery);
+		}
+		catch (SQLException sql) {
+			throw new PageException(sql.getMessage(), sql.getCause());
+		}
+	}
+
 	
 	/**
 	 * This method always performs a soft delete by marking the archived field to true.
@@ -133,8 +173,9 @@ public class PageRegistry {
 	 * @throws PageException
 	 */
 	public void deletePage(String id) throws PageException {
-		//this.checkConnector("delete");
-		String query = PAGE_DELETE_BY_ID_QUERY +"'"+id+"'";
+		//this.checkConnector("soft delete");
+		//String query = PAGE_DELETE_BY_ID_QUERY +"'"+id+"'";
+		String query = "UPDATE page_registry SET archived='T' where id='"+id+"';";
 		
 		Connection connector = RegistryConnector.getConnector();
 		
@@ -153,7 +194,17 @@ public class PageRegistry {
 	 * @throws PageException
 	 */
 	public void hardDeletePage(String id) throws PageException {
-		//	TODO:	Write this one.
+		//this.checkConnector("hard delete");
+		String query = PAGE_DELETE_BY_ID_QUERY +"'"+id+"'";
+		
+		Connection connector = RegistryConnector.getConnector();
+		
+		try(Statement stmt = connector.createStatement())  {		
+			stmt.execute(query);
+		}
+		catch (SQLException sql) {
+			throw new PageException(sql.getMessage(), sql.getCause());
+		}	
 	}
 	
 	/**

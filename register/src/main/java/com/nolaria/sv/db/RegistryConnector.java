@@ -54,6 +54,37 @@ public class RegistryConnector {
 		return RegistryConnector.connector;
 	}
 	
+	
+	/**
+	 * Return true if the current connector is valid.
+	 * 
+	 * @return true if valid
+	 * @throws PageException
+	 */
+	public static boolean isValid() throws PageException {
+		try {
+
+			//	See if the connector has not been created.
+			if (RegistryConnector.connector == null) {
+				System.out.println ("Connector is null.");
+				return false;
+			}
+		
+			//	See if the connector is valid/open.
+			else if (!RegistryConnector.connector.isValid(1)) {
+				System.out.println ("Connector is invalid");
+				return false;
+			}
+		
+		}
+		catch (SQLException sql) {
+			throw new PageException(sql.getMessage(), sql.getCause());
+		}
+		
+		return true;
+		
+	}
+	
 	/**
 	 * Create a new connector.
 	 * 

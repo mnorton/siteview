@@ -131,7 +131,7 @@ public class PageIdFramework {
 		
 		//	TODO:  Create a means to find the banner image for any site.
 		//	Add the banner logo.
-		sb.append("\t<a href=\"/"+this.siteName+"/home.html\"><img float=\"left\" src=\"/"+this.siteName+"/"+DEFAULT_BANNER+"\" width=\"500\"/></a>\n");
+		sb.append("\t<a href=\"http://localhost:8080/sv/?site=nolaria&id=961d30bb-c47b-4908-9762-d5918d477319\"><img float=\"left\" src=\"/"+this.siteName+"/"+DEFAULT_BANNER+"\" width=\"500\"/></a>\n");
 		//sb.append("&nbsp;&nbsp;&nbsp;&nbsp;\n");
 		sb.append("\t<br>\n");
 		
@@ -331,7 +331,9 @@ public class PageIdFramework {
 					sb.append(Util.tabber(level)+"<li>\n");
 					sb.append(Util.tabber(level)+"<input type=\"checkbox\" id=\""+randId+"\""+checked+"/>\n");
 					sb.append(Util.tabber(level)+"<label for=\""+randId+"\">");
-					sb.append(Util.indent(level)+"<a href='/sv?site="+this.siteName+"&id="+foundPage.getId()+"'>"+name+"</a>");
+					//sb.append(Util.indent(level)+"<a href='/sv?site="+this.siteName+"&id="+foundPage.getId()+"'>"+name+"</a>");
+					String title = foundPage.title;
+					sb.append(Util.indent(level)+"<a href='/sv?site="+this.siteName+"&id="+foundPage.getId()+"'>"+title+"</a>");
 					sb.append("</label>\n");
 					sb.append(Util.tabber(level)+"<ul>\n");
 
@@ -381,8 +383,8 @@ public class PageIdFramework {
 				String key = this.siteName + "/" + path + "/" + fn;
 				PageId foundPage = this.pages.get(key);
 				if (foundPage == null) {
-					//System.out.println("File page not found for "+key);
 					System.out.println("File page not found for "+this.siteName+" - "+path+" - "+fn);
+					//System.out.println("\tKey not found: "+key);
 					sb.append(Util.tabber(level)+"File page not found for "+key+"<br>");
 					continue;
 				}
@@ -392,8 +394,9 @@ public class PageIdFramework {
 				if (dirList.get(parts[0]) == null) {
 					//sb.append(indent(level)+"<a href='/sv?ref="+relFilePath+"'>"+name+"</a><br>\n");
 					sb.append(Util.tabber(level)+"<li><span>");
-					sb.append(Util.indent(level)+"<a href='/sv?site="+this.siteName+"&id="+foundPage.getId()+"'>"+name+"</a>");
-					//sb.append(Util.indent(level)+"<a href='/sv?ref="+relFilePath+"'>"+name+"</a>");
+					//sb.append(Util.indent(level)+"<a href='/sv?site="+this.siteName+"&id="+foundPage.getId()+"'>"+name+"</a>");
+					String title = foundPage.title;
+					sb.append(Util.indent(level)+"<a href='/sv?site="+this.siteName+"&id="+foundPage.getId()+"'>"+title+"</a>");
 					sb.append("</span></li>\n");
 				}
 			}
@@ -408,6 +411,7 @@ public class PageIdFramework {
 
 	/**
 	 * Create a new page from the title passed in the directory specified by ref.
+	 * Note:  the page to be created as a path of the current path plus a node taken from the current file name.
 	 * 
 	 * @param ref - directory path
 	 * @param newTitle - title of the new page.
@@ -421,12 +425,17 @@ public class PageIdFramework {
 		//String file = newTitle.replaceAll(" ", "-").toLowerCase() + node +".html";
 		String file = newTitle.replaceAll(" ", "-").toLowerCase() +".html";
 		String pid = UUID.randomUUID().toString();
+		
+		//	The target path is the path of the current page, plus the directory it will be created in.
+		String targetPath = path+"/"+node;
+		if (targetPath.charAt(0) == '/')
+			targetPath = targetPath.substring(1);
 
-		System.out.println("New page to create: "+newTitle+ " in file: "+file);
+		System.out.println("New page to create: "+newTitle+ " on path:"+targetPath+" in file: "+file);
 
 		//	Register the new page.
 		try {
-			pageRegistry.registerPage(pid, this.siteName, newTitle, file, path);
+			pageRegistry.registerPage(pid, this.siteName, newTitle, file, targetPath);
 		}
 		catch (PageException pg) {
 			System.out.println("Unable to create page "+newTitle);
@@ -481,7 +490,7 @@ public class PageIdFramework {
 		
 		//	Save the contents out to the new page file.
 		String fileName = dirName+"\\"+file;
-		//Util.saveFile(content.toString(), fileName);
+		Util.saveFile(content.toString(), fileName);
 		
 		System.out.println("Created a page called: "+newTitle+" in a name of: "+file+" with a PID of: "+pid);
 		System.out.println("Save new contents to: "+fileName);

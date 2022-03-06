@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.nolaria</groupId>
   <artifactId>register</artifactId>
-  <version>1.0.1</version>
+  <version>1.0.2</version>
   <name>Page Registration</name>
   <description>Register all pages in the specified site.</description>
 
