@@ -383,8 +383,17 @@ public class PageIdFramework {
 				String key = this.siteName + "/" + path + "/" + fn;
 				PageId foundPage = this.pages.get(key);
 				if (foundPage == null) {
-					System.out.println("File page not found for "+this.siteName+" - "+path+" - "+fn);
+					//System.out.println("File page not found for "+this.siteName+" - "+path+" - "+fn);
 					//System.out.println("\tKey not found: "+key);
+					
+					//	Registered the missing page.
+					try {
+						pageRegistry.registerPage(this.site.getName(), path+"/"+fn);
+					}
+					catch (PageException page) {
+						System.out.println("Registration error: "+this.siteName+" - "+path+" - "+fn);
+					}
+					
 					sb.append(Util.tabber(level)+"File page not found for "+key+"<br>");
 					continue;
 				}
@@ -435,7 +444,7 @@ public class PageIdFramework {
 
 		//	Register the new page.
 		try {
-			pageRegistry.registerPage(pid, this.siteName, newTitle, file, targetPath);
+			pageRegistry.createPage(pid, this.siteName, newTitle, file, targetPath);
 		}
 		catch (PageException pg) {
 			System.out.println("Unable to create page "+newTitle);

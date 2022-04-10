@@ -235,7 +235,7 @@ public class Register {
 			
 			//	Register the page.
 			try {
-				this.pageRegistry.registerPage(info.pid, DEFAULT_SITE, info.title, fileName, path);
+				this.pageRegistry.createPage(info.pid, DEFAULT_SITE, info.title, fileName, path);
 				status = "REGISTERED";
 				this.registerCount++;
 			}
@@ -295,7 +295,7 @@ public class Register {
 			List<PageId> allPages = pageRegistry.getAllPages();
 			
 			//	These happen in createNewPage()
-			pageRegistry.registerPage(pid, DEFAULT_SITE, "TEST", "test.html", "/test");
+			pageRegistry.createPage(pid, DEFAULT_SITE, "TEST", "test.html", "/test");
 			
 			//	Delete the test page created.
 			pageRegistry.deletePage(pid);

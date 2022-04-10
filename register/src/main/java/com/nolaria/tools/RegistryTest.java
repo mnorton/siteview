@@ -143,7 +143,7 @@ public class RegistryTest {
 		
 		try {
 			System.out.println("\nRegister a page test:");
-			this.pageRegistry.registerPage(id, site, title, file, path);
+			this.pageRegistry.createPage(id, site, title, file, path);
 			System.out.println("\tPage titled "+title+" was registered with an id of "+id);
 			
 			System.out.println(RegistryConnector.isValid()?"CONNECTOR VALID":"CONNECTOR INVALID");
@@ -165,7 +165,7 @@ public class RegistryTest {
 		
 		try {
 			System.out.println("\nRegister a page that exists test:");
-			this.pageRegistry.registerPage(id, site, title, file, path);
+			this.pageRegistry.createPage(id, site, title, file, path);
 			System.out.println("\tPage titled "+title+" was registered when failure was expected.");
 			
 			System.out.println(RegistryConnector.isValid()?"CONNECTOR VALID":"CONNECTOR INVALID");

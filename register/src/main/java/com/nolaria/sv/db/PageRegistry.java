@@ -97,7 +97,7 @@ public class PageRegistry {
 	}
 	
 	/**
-	 * Register a page given information about it.
+	 * Create a page given information about it and register it.
 	 * 
 	 * @param id
 	 * @param site
@@ -106,7 +106,7 @@ public class PageRegistry {
 	 * @param path
 	 * @throws PageException
 	 */
-	public void registerPage(String id, String site, String title, String file, String path) throws PageException {
+	public void createPage(String id, String site, String title, String file, String path) throws PageException {
 		//	Escape apostrophes in the title.
 		title = title.replace("'", "''");
 		
@@ -124,6 +124,56 @@ public class PageRegistry {
 		catch (SQLException sql) {
 			throw new PageException(sql.getMessage(), sql.getCause());
 		}
+	}
+	
+	/**
+	 * Register a missing page.  This method is used when a page is found in the file system
+	 * but is not present in the page registry.  The file is expected to have:
+	 *     <meta name="title" content="TITLE">
+	 *     <meta name="name" content="FILE NAME">
+	 *     <meta name="pid" content="UUID">
+	 *
+	 * If these are not present, a PageException is thrown.
+	 * In theory, they could be defaulted, but it would mean updating the content as well
+	 * as the page_registry table.
+	 *
+	 * @param filename
+	 * @throws PageException
+	 */
+	public void registerPage(String site, String relFilePath) throws PageException {
+		System.out.println("Page to register: "+relFilePath);
+				
+		//	The relPath has the site removed from it's front.
+		String relPath = relFilePath;
+		if (relPath.contains(site)) {
+			relPath = relPath.substring(site.length()+1);
+		}
+		relPath = relPath.substring(1);
+
+		//	Remove the file name from the path.
+		String path = "";
+		String parts[] = null;
+		
+		parts = relPath.split("/");
+		if (parts.length == 0)
+			System.out.println("Rel path didn't split:  "+relPath);		
+		for (int i=0; i<parts.length-1; i++)
+			path += "/"+parts[i];
+		if (path.length() != 0)
+			path = path.substring(1);
+		
+		//	Extract the file name.
+		parts = relFilePath.split("/");
+		if (parts.length == 0)
+			System.out.println("Rel file path didn't split:  "+relFilePath);		
+		String fileName = parts[parts.length-1];
+				
+		//	Extract metadata from the page file.
+		String contents = Util.fetchContents(relFilePath);
+		PageInfo info = Util.getHeaderInfo(contents);			
+			
+		//	Register the page.  This will throw PageException if the page is already registered.
+		this.createPage(info.pid, site, info.title, fileName, path);		
 	}
 
 	/**
