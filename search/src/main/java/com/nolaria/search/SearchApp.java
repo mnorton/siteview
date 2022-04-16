@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -22,12 +23,12 @@ import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.IOUtils;
-import org.apache.lucene.util.QueryBuilder;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 
-//import org.jsoup.Jsoup;
-//import org.jsoup.nodes.Document;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.*;
+//import org.jsoup.select.*;
 
 /**
  * @author Mark J. Norton
@@ -45,9 +46,15 @@ public class SearchApp {
 	public static void main(String[] args) {
 		System.out.println ("Lucene Search Engine Test");
 		File testFile = new File(SearchApp.testFileName);
-		SearchApp.app.index(testFile);
+		//SearchApp.app.index(testFile);
+		SearchApp.app.parseFile(testFile);
 	}
 
+	/**
+	 * Index the text in the file passed and add it to the search engine.
+	 * 
+	 * @param f
+	 */
 	public void index(File f) {
 		System.out.println("File to index: "+f.getPath());
 		try {
@@ -83,7 +90,6 @@ public class SearchApp {
 		    ireader.close();
 		    directory.close();
 		    IOUtils.rm(indexPath);
-
 		}
 		catch (IOException io) {
 			System.out.println("IO Error: "+io.getCause());
@@ -91,6 +97,63 @@ public class SearchApp {
 		catch (ParseException pe) {
 			System.out.println("Query Parser Error: "+pe.getCause());			
 		}
-
 	}
+	
+	/**
+	 * Parse an HTML file and show text fragments.
+	 * @param file
+	 */
+	public void parseFile(File file) {
+		try {
+			org.jsoup.nodes.Document doc = Jsoup.parse(file, "UTF-8", "http://example.com/");
+			List<Node> nodes = doc.childNodes();
+			for (Node node : nodes) {
+				htmlWalker(node);
+			}			
+		}
+		catch (IOException io) {
+			System.out.println("IO Error: "+io.getCause());			
+		}
+	}
+	
+	/**
+	 * Recursive HTML document scanner.
+	 * 
+	 * @param node
+	 */
+	public void htmlWalker(Node node) {
+		
+		//	If this is an element node, process it.
+		if (node instanceof Element) {
+			Element element = (Element) node;
+			String tagName = element.tagName().toLowerCase();
+			if (isIndexable(tagName)) {
+				String text = element.text();
+				System.out.println(tagName+": "+text);
+			}
+		}
+		
+		//	Get the child notes and recurse.
+		List<Node> cNodes = node.childNodes();
+		if (cNodes.size() > 0) {
+			for (Node cNode : cNodes)
+				htmlWalker(cNode);
+		}		
+	}
+	
+	public boolean isIndexable(String tagName) {
+		switch (tagName) {
+		case "div":
+		case "span":
+		case "p":
+		case "h1":
+		case "h2":
+		case "h3":
+		case "h4":
+		case "li":
+			return true;
+		}
+		return false;
+	}
+		
 }
