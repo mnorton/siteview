@@ -13,7 +13,7 @@ import java.util.Vector;
 import com.nolaria.sv.db.*;
 
 /**
- * Scan a file tree for the DEFAULT_SITE and registered any unregistered pages.
+ * Scan a file tree for the DEFAULT_SITE and register any unregistered pages.
  * NOTE:  This class makes use of utility methods in com.nolaria.sv.db.Util.
  * 
  * @author markjnorton@gmail.com
@@ -64,14 +64,19 @@ public class Register {
 			//register.testSuccessiveGetPage();
 			//register.testRegisterPage();
 
-			// =================  Operation ==========================
+			// =================  Operations ==========================
+			
 			// Scan a site and register pages not already registered.
 			register.scanAndRegister(DEFAULT_SITE);
+			
+			//	Scan a site and update page records with information from file metadata.
+			register.scanAndUpdate(DEFAULT_SITE);
 
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		} finally {
-			register.conn.close();
+			if (register.conn != null)
+				register.conn.close();
 		}
 
 	}
@@ -86,14 +91,14 @@ public class Register {
 	 *
 	 *	This creates a cached list of the file names of all registered pages.  There is a flaw in this
 	 *	approach:  two pages might have the same file name, which would cause the second entry to throw 
-	 *	a SQL exception (record already exists).
+	 *	a SQL exception (record already exists).  (This assumes the insert would fail, which it doesn't)
 	 *
 	 */
 	public void scanAndRegister(String site) throws PageException {
 		System.out.println("\n============  Register Pages ==============\n");
 		System.out.println("Scanning this site: "+site);
 		
-		//	Get the list of all currently registered tables.  Speeds up checks for unregistered files.
+		//	Get the list of all currently registered pages.  Speeds up checks for unregistered files.
 		this.allPages = this.pageRegistry.getAllPages();
 		this.allPageNames = new Vector<String>();
 		for (PageId pg : allPages) {
@@ -193,7 +198,7 @@ public class Register {
 	 * @param relFilePath
 	 * @return status string
 	 */
-	private String register(String relFilePath) throws PageException{
+	private String register(String relFilePath) throws PageException {
 		String status = "???";
 		
 		//	The relPath has the site removed from it's front.
@@ -250,6 +255,62 @@ public class Register {
 		//return fileName + " --- "+status;
 	}
 
+	/**
+	 * Scan all records in the page_registry table and update them with info from the page contents.
+	 * 
+	 * @param site
+	 * @throws PageException
+	 */
+	public void scanAndUpdate(String site) throws PageException {
+		System.out.println("\n============  Update Pages ==============\n");
+		System.out.println("Scanning this site: "+site);
+		
+		//	Get the list of all currently registered pages.  Speeds up checks for unregistered files.
+		this.allPages = this.pageRegistry.getAllPages();
+
+		System.out.println("Registered pages: "+this.allPages.size());
+		System.out.println();
+
+		int updates = 0;
+		this.allPageNames = new Vector<String>();
+		for (PageId pg : allPages) {
+			//String fullPath = pg.getFullFileName();
+			String relPath = "\\"+site+"\\"+pg.getPath()+"\\"+pg.getFile();
+			String contents = Util.fetchContents(relPath);
+			PageInfo headers = Util.getHeaderInfo(contents);
+			
+			boolean updateNeeded = false;
+			
+			//	See if the title needs to be updated.
+			if (pg.getTitle() == null || headers.title == null || pg.getTitle().compareTo(headers.title) != 0) {
+				System.out.println("\nTitle is different in: "+relPath);
+				System.out.println("DB Title: ["+pg.getTitle()+"] vs "+ "File Title: ["+headers.title+"]");
+				updateNeeded = true;
+			}
+			//	See if the name needs to be updated.
+			/*
+			if (pg.getFile() == null || headers.name == null || pg.getFile().compareTo(headers.name) != 0) {
+				System.out.println("\nFile Name is different in: "+relPath);
+				System.out.println("DB Name: "+pg.getFile()+" vs "+ "File Name: "+headers.name);
+				updateNeeded = true;
+			}
+			*/
+
+			//	Do the udpate, if needed.
+			if (updateNeeded) {
+				try {
+					this.pageRegistry.updatePage(pg.getId(), site, headers.title, pg.getFile(), pg.getPath());
+				}
+				catch (PageException pe) {
+					System.out.println("Error: "+pe.getCause());
+				}
+				updates++;
+			}
+		}
+
+		System.out.println("Updates performed: "+updates);
+		
+	}
 	
 	/****************************************************************
 	 *                    Test Operations                           *

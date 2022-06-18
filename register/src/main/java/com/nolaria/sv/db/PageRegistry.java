@@ -111,10 +111,13 @@ public class PageRegistry {
 		title = title.replace("'", "''");
 		
 		//this.checkConnector("register");
+		
+		// TODO:  Add a check to see if the page is already registered.
 
 		//	Assemble the insert query.
 		String query = REGISTER_PAGE_QUERY + "('"+id+"','"+site+"','"+title+"','"+file+"','"+path+"')";
-		System.out.println(query);
+		//System.out.println(query);
+		System.out.println("Registered: "+file+": "+id);
 		
 		Connection connector = RegistryConnector.getConnector();
 
@@ -141,7 +144,7 @@ public class PageRegistry {
 	 * @throws PageException
 	 */
 	public void registerPage(String site, String relFilePath) throws PageException {
-		System.out.println("Page to register: "+relFilePath);
+		//System.out.println("Page to register: "+relFilePath);
 				
 		//	The relPath has the site removed from it's front.
 		String relPath = relFilePath;

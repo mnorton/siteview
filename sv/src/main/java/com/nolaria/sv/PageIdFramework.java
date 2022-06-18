@@ -15,6 +15,7 @@ import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 
 import com.nolaria.sv.db.*;
+import com.nolaria.sv.db.PageInfo;
 
 /**
  * The Page Id Framework is the base class of the Site Viewer app. It is
@@ -128,6 +129,11 @@ public class PageIdFramework {
 		if ( (newTitle != null) && (newTitle.length() > 0) )
 			this.createNewPage(newTitle);
 
+		//	Check for an update page request.
+		String op = this.request.getParameter("op");
+		System.out.println("Parameter op value: "+op);
+		if ( (op != null) && op.compareTo("update") == 0)
+			this.updateCurrentPage();
 		
 		//	TODO:  Create a means to find the banner image for any site.
 		//	Add the banner logo.
@@ -151,11 +157,17 @@ public class PageIdFramework {
 		sb.append("\t\t<label for=\"new-title\"><b>Title:</b></label>\n");
 		sb.append("\t\t<input type=\"text\" id=\"new-title\" name=\"new-title\">\n");
 
-		sb.append("\t\t&nbsp;&nbsp;<a target=\"_blank\" href=\"" + this.page.getDirectUrl() + "\"/>\n");
-		sb.append("\t\t<button type=\"button\">\n");
-		sb.append("\t\t\t<b>Print</b>\n");
-		sb.append("\t\t</button>\n");
-		sb.append("\t\t</a>\n");
+		sb.append("\t\t&nbsp;&nbsp;<a target=\"_blank\" href=\"" + this.page.getDirectUrl() + "\"/>");
+		sb.append("<button type=\"button\">");
+		sb.append("<b>Print</b>");
+		sb.append("</button>");
+		sb.append("</a>\n");
+		
+		sb.append("\t\t&nbsp;&nbsp;<a href=\"/sv?site="+this.page.getSite()+"&id="+this.page.getId()+"&op=update"+"\"/>");
+		sb.append("<button type=\"button\">");
+		sb.append("<b>Update</b>");
+		sb.append("</button>");
+		sb.append("</a>\n");
 
 		sb.append("\t</form>\n");		
 		sb.append("\t</div>\n");
@@ -333,7 +345,8 @@ public class PageIdFramework {
 					sb.append(Util.tabber(level)+"<label for=\""+randId+"\">");
 					//sb.append(Util.indent(level)+"<a href='/sv?site="+this.siteName+"&id="+foundPage.getId()+"'>"+name+"</a>");
 					String title = foundPage.title;
-					sb.append(Util.indent(level)+"<a href='/sv?site="+this.siteName+"&id="+foundPage.getId()+"'>"+title+"</a>");
+					//sb.append(Util.indent(level));	// This causes space to build up after the drop down control.
+					sb.append("<a href='/sv?site="+this.siteName+"&id="+foundPage.getId()+"'>"+title+"</a>");
 					sb.append("</label>\n");
 					sb.append(Util.tabber(level)+"<ul>\n");
 
@@ -387,13 +400,14 @@ public class PageIdFramework {
 					//System.out.println("\tKey not found: "+key);
 					
 					//	Registered the missing page.
+					/*
 					try {
 						pageRegistry.registerPage(this.site.getName(), path+"/"+fn);
 					}
 					catch (PageException page) {
 						System.out.println("Registration error: "+this.siteName+" - "+path+" - "+fn);
 					}
-					
+					*/
 					sb.append(Util.tabber(level)+"File page not found for "+key+"<br>");
 					continue;
 				}
@@ -405,7 +419,8 @@ public class PageIdFramework {
 					sb.append(Util.tabber(level)+"<li><span>");
 					//sb.append(Util.indent(level)+"<a href='/sv?site="+this.siteName+"&id="+foundPage.getId()+"'>"+name+"</a>");
 					String title = foundPage.title;
-					sb.append(Util.indent(level)+"<a href='/sv?site="+this.siteName+"&id="+foundPage.getId()+"'>"+title+"</a>");
+					sb.append(Util.indent(level));
+					sb.append("<a href='/sv?site="+this.siteName+"&id="+foundPage.getId()+"'>"+title+"</a>");
 					sb.append("</span></li>\n");
 				}
 			}
@@ -419,10 +434,9 @@ public class PageIdFramework {
 	 ***********************************************************************/
 
 	/**
-	 * Create a new page from the title passed in the directory specified by ref.
+	 * Create a new page for the title passed in the directory specified by ref.
 	 * Note:  the page to be created as a path of the current path plus a node taken from the current file name.
 	 * 
-	 * @param ref - directory path
 	 * @param newTitle - title of the new page.
 	 */
 	public void createNewPage(String newTitle) {
@@ -441,16 +455,6 @@ public class PageIdFramework {
 			targetPath = targetPath.substring(1);
 
 		System.out.println("New page to create: "+newTitle+ " on path:"+targetPath+" in file: "+file);
-
-		//	Register the new page.
-		try {
-			pageRegistry.createPage(pid, this.siteName, newTitle, file, targetPath);
-		}
-		catch (PageException pg) {
-			System.out.println("Unable to create page "+newTitle);
-			System.out.println("SQL Error:  "+pg.getMessage());
-			return;
-		}
 
 		//	Create the HTML content of the new page.
 		StringBuffer content = new StringBuffer();
@@ -497,11 +501,61 @@ public class PageIdFramework {
 				System.out.println("Created a directory called: "+dirFile);
 		}
 		
-		//	Save the contents out to the new page file.
+		//	See if the page file already exists and save the contents out if not.
 		String fileName = dirName+"\\"+file;
-		Util.saveFile(content.toString(), fileName);
+		File targetFile = new File(fileName);
+		if (targetFile.exists() == true) {
+			System.out.println ("Page file to be created already exists:  "+fileName);
+			return;
+		}
+		else {
+			Util.saveFile(content.toString(), fileName);
+			System.out.println("Saved new contents to: "+fileName);
+		}
 		
-		System.out.println("Created a page called: "+newTitle+" in a name of: "+file+" with a PID of: "+pid);
-		System.out.println("Save new contents to: "+fileName);
+		//	Register the new page in the database.
+		try {
+			pageRegistry.createPage(pid, this.siteName, newTitle, file, targetPath);
+			System.out.println("Registered a page called: "+newTitle+" in a name of: "+file+" with a PID of: "+pid);
+		}
+		catch (PageException pg) {
+			System.out.println("Unable to create page "+newTitle);
+			System.out.println("SQL Error:  "+pg.getMessage());
+			return;
+		}
+	}
+	
+	/**
+	 * Update the database record associated with the ID of the current page from information in the page file.
+	 */
+	public void updateCurrentPage() {
+		
+		String relPath = "\\"+site.getName()+"\\"+this.page.getPath()+"\\"+this.page.getFile();
+		String contents = Util.fetchContents(relPath);
+		PageInfo headers = Util.getHeaderInfo(contents);
+		
+		System.out.println("Preparing to update current page.");
+		System.out.println("File data: "+headers.toString());
+		System.out.println("DB data: "+this.page.toString());
+		
+		boolean updateNeeded = false;
+		
+		//	See if the title needs to be updated.
+		if (this.page.getTitle() == null || headers.title == null || this.page.getTitle().compareTo(headers.title) != 0) {
+			System.out.println("\nTitle is different in: "+relPath);
+			System.out.println("DB Title: ["+this.page.getTitle()+"] vs "+ "File Title: ["+headers.title+"]");
+			updateNeeded = true;
+		}
+
+		//	Do the update, if needed.
+		if (updateNeeded) {
+			try {
+				PageIdFramework.pageRegistry.updatePage(this.page.getId(), this.site.getName(), headers.title, this.page.getFile(), this.page.getPath());
+				System.out.println("The current page ["+headers.title+"] whose id is: "+this.page.getId()+" was updated.");
+			}
+			catch (PageException pe) {
+				System.out.println("Update failed: "+pe.getCause());
+			}
+		}
 	}
 }
