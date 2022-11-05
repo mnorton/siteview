@@ -489,7 +489,7 @@ public class PageIdFramework {
 			path = ref.substring(0, extentionOffest);
 		*/
 		
-		//	Make a folder to how the new page, if needed.
+		//	Make a folder to hold the new page, if needed.
 		String dirName = FILE_ROOT+"\\"+this.siteName;
 		if (path.length() > 0)
 			dirName += "\\" + path + "\\" + node;
@@ -497,7 +497,7 @@ public class PageIdFramework {
 			dirName += "\\" + node;
 		File dirFile = new File(dirName);
 		if (!dirFile.exists()) {
-			//if (dirFile.mkdir() == true)
+			if (dirFile.mkdir() == true)
 				System.out.println("Created a directory called: "+dirFile);
 		}
 		
