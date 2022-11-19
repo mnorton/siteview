@@ -10,6 +10,9 @@ import java.sql.Statement;
 import java.util.List;
 import java.util.Vector;
 
+import org.junit.jupiter.api.*;
+import static org.junit.jupiter.api.Assertions.*;
+
 /**
  * The registry of all pages in a site.
  * 
@@ -285,4 +288,14 @@ public class PageRegistry {
 		}	
 	}
 	*/
+	
+	/*****************************************************************************
+	 *                      Unit Tests                                           *
+	 *****************************************************************************/
+	
+	@Test
+	void getAllPages_connector_notNull() throws Exception {
+		Connection connector = RegistryConnector.getConnector();
+		assertNotNull(connector);
+	}
 }
