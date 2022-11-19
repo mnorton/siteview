@@ -5,8 +5,6 @@ package com.nolaria.tools;
 
 import java.io.File;
 import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -15,15 +13,13 @@ import java.util.Vector;
 import com.nolaria.sv.db.*;
 
 /**
- * Scan a file tree for the DEFAULT_SITE and registered any unregistered pages.
+ * Scan a file tree for the DEFAULT_SITE and register any unregistered pages.
  * NOTE:  This class makes use of utility methods in com.nolaria.sv.db.Util.
  * 
  * @author markjnorton@gmail.com
  *
  */
 public class Register {
-	private static final String DB_URL = "jdbc:mysql://localhost/site_view";
-	private static final String CREDS = "?user=root&password=admin";
 	private static final String DEFAULT_SITE = "nolaria";
 	
 	private static String ALLEGORY_ID = "7cbd34d1-72e3-43b9-b35d-4129ca489547";
@@ -59,29 +55,28 @@ public class Register {
 		  
 		// Open a database connection to access associated tables.
 		try {
-			// Open the site and page registries.
-			Class.forName("org.mariadb.jdbc.Driver");
-
-			// Create the registry objects.
-			register.conn = DriverManager.getConnection(DB_URL + CREDS);
-
 			// Create the site and page registry objects.
-			register.siteRegistry = new SiteRegistry(register.conn);
-			register.pageRegistry = new PageRegistry(register.conn, true);
+			register.siteRegistry = new SiteRegistry();
+			register.pageRegistry = new PageRegistry();
 			
 			// ===================  Test =============================
-			System.out.println("Page Registry Tests");
-			register.testSuccessiveGetPage();
-			register.testRegisterPage();
+			//System.out.println("Page Registry Tests");
+			//register.testSuccessiveGetPage();
+			//register.testRegisterPage();
 
-			// =================  Operation ==========================
+			// =================  Operations ==========================
+			
 			// Scan a site and register pages not already registered.
-			//register.scanAndRegister(DEFAULT_SITE);
+			register.scanAndRegister(DEFAULT_SITE);
+			
+			//	Scan a site and update page records with information from file metadata.
+			register.scanAndUpdate(DEFAULT_SITE);
 
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		} finally {
-			register.conn.close();
+			if (register.conn != null)
+				register.conn.close();
 		}
 
 	}
@@ -96,15 +91,14 @@ public class Register {
 	 *
 	 *	This creates a cached list of the file names of all registered pages.  There is a flaw in this
 	 *	approach:  two pages might have the same file name, which would cause the second entry to throw 
-	 *	a SQL exception (record already exists).
+	 *	a SQL exception (record already exists).  (This assumes the insert would fail, which it doesn't)
 	 *
-	 *	TODO:  Do I want to also update changes to title and name?
 	 */
-	public void scanAndRegister(String site) throws SQLException {
-		System.out.println("\n============================ Register Pages =============================\n");
+	public void scanAndRegister(String site) throws PageException {
+		System.out.println("\n============  Register Pages ==============\n");
 		System.out.println("Scanning this site: "+site);
 		
-		//	Get the list of all currently registered tables.  Speeds up checks for unregistered files.
+		//	Get the list of all currently registered pages.  Speeds up checks for unregistered files.
 		this.allPages = this.pageRegistry.getAllPages();
 		this.allPageNames = new Vector<String>();
 		for (PageId pg : allPages) {
@@ -136,7 +130,7 @@ public class Register {
 	 * 
 	 * @return nav content
 	 */
-	private void directoryWalker (int level, String relPath, StringBuffer sb) {		
+	private void directoryWalker (int level, String relPath, StringBuffer sb) throws PageException {		
 		//	Convert relative path to a full path.
 		String dirPath = Util.FILE_ROOT + relPath;
 		File dirFile = new File(dirPath);
@@ -204,7 +198,7 @@ public class Register {
 	 * @param relFilePath
 	 * @return status string
 	 */
-	private String register(String relFilePath) {
+	private String register(String relFilePath) throws PageException {
 		String status = "???";
 		
 		//	The relPath has the site removed from it's front.
@@ -246,14 +240,14 @@ public class Register {
 			
 			//	Register the page.
 			try {
-				this.pageRegistry.registerPage(info.pid, DEFAULT_SITE, info.name, fileName, path);
+				this.pageRegistry.createPage(info.pid, DEFAULT_SITE, info.title, fileName, path);
 				status = "REGISTERED";
 				this.registerCount++;
 			}
-			catch (SQLException sql) {
+			catch (PageException pg) {
 				status = "FAILED";
 				this.failedRegistrations.add(relFilePath);
-				System.err.println(sql.getCause());
+				System.err.println(pg.getCause());
 			}
 		}
 		
@@ -261,26 +255,82 @@ public class Register {
 		//return fileName + " --- "+status;
 	}
 
+	/**
+	 * Scan all records in the page_registry table and update them with info from the page contents.
+	 * 
+	 * @param site
+	 * @throws PageException
+	 */
+	public void scanAndUpdate(String site) throws PageException {
+		System.out.println("\n============  Update Pages ==============\n");
+		System.out.println("Scanning this site: "+site);
+		
+		//	Get the list of all currently registered pages.  Speeds up checks for unregistered files.
+		this.allPages = this.pageRegistry.getAllPages();
+
+		System.out.println("Registered pages: "+this.allPages.size());
+		System.out.println();
+
+		int updates = 0;
+		this.allPageNames = new Vector<String>();
+		for (PageId pg : allPages) {
+			//String fullPath = pg.getFullFileName();
+			String relPath = "\\"+site+"\\"+pg.getPath()+"\\"+pg.getFile();
+			String contents = Util.fetchContents(relPath);
+			PageInfo headers = Util.getHeaderInfo(contents);
+			
+			boolean updateNeeded = false;
+			
+			//	See if the title needs to be updated.
+			if (pg.getTitle() == null || headers.title == null || pg.getTitle().compareTo(headers.title) != 0) {
+				System.out.println("\nTitle is different in: "+relPath);
+				System.out.println("DB Title: ["+pg.getTitle()+"] vs "+ "File Title: ["+headers.title+"]");
+				updateNeeded = true;
+			}
+			//	See if the name needs to be updated.
+			/*
+			if (pg.getFile() == null || headers.name == null || pg.getFile().compareTo(headers.name) != 0) {
+				System.out.println("\nFile Name is different in: "+relPath);
+				System.out.println("DB Name: "+pg.getFile()+" vs "+ "File Name: "+headers.name);
+				updateNeeded = true;
+			}
+			*/
+
+			//	Do the udpate, if needed.
+			if (updateNeeded) {
+				try {
+					this.pageRegistry.updatePage(pg.getId(), site, headers.title, pg.getFile(), pg.getPath());
+				}
+				catch (PageException pe) {
+					System.out.println("Error: "+pe.getCause());
+				}
+				updates++;
+			}
+		}
+
+		System.out.println("Updates performed: "+updates);
+		
+	}
 	
 	/****************************************************************
-	 *                    Operations                                *
+	 *                    Test Operations                           *
 	 ****************************************************************/
 
 	/**
 	 * Get two pages in a row from the Page Registry.
 	 */
 	@SuppressWarnings(value = { "unused" })
-	public void testSuccessiveGetPage() {
+	public void testSuccessiveGetPage()  {
 		
 		try {
 			PageId page1 = pageRegistry.getPage(ALLEGORY_ID);
-			//System.out.println("Got the page called "+page1.getName());
+			//System.out.println("Got the page called "+page1.getTitle());
 			PageId page2 = pageRegistry.getPage(ALTAMEK_ID);
-			//System.out.println("Got the page called "+page2.getName());
+			//System.out.println("Got the page called "+page2.getTitle());
 		}
-		catch (SQLException sql) {
+		catch (PageException pg) {
 			System.out.println("\ttestSuccessiveGetPage: FAILED");
-			sql.printStackTrace();
+			pg.printStackTrace();
 		}
 		
 		System.out.println("\ttestSuccessiveGetPage:  PASS");
@@ -306,14 +356,14 @@ public class Register {
 			List<PageId> allPages = pageRegistry.getAllPages();
 			
 			//	These happen in createNewPage()
-			pageRegistry.registerPage(pid, DEFAULT_SITE, "TEST", "test.html", "/test");
+			pageRegistry.createPage(pid, DEFAULT_SITE, "TEST", "test.html", "/test");
 			
 			//	Delete the test page created.
 			pageRegistry.deletePage(pid);
 		}
-		catch (SQLException sql) {
+		catch (PageException pg) {
 			System.out.println("\ttestRegisterPage: FAILED");
-			sql.printStackTrace();
+			pg.printStackTrace();
 		}
 		System.out.println("\ttestRegisterPage:  PASS");	
 	}

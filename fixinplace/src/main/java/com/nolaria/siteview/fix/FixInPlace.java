@@ -3,13 +3,21 @@
  */
 package com.nolaria.siteview.fix;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+
+import com.nolaria.sv.db.*;
+
+//import javax.xml.parsers.DocumentBuilder;
+//import javax.xml.parsers.DocumentBuilderFactory;
+//import org.w3c.dom.Document;
+//import org.w3c.dom.DocumentType;
+
+import org.jsoup.nodes.*;
+import org.jsoup.select.*;
+
+//import sun.nio.cs.ext.TIS_620;
 
 /**
  * This application is a follow on to the SV Converter.  It is intended to fix any problems
@@ -21,8 +29,10 @@ public class FixInPlace {
 	public static FixInPlace app = new FixInPlace();
 	
 	//	Fix one file
-	public static String testInputFile = "C:/Users/markj/Documents/Personal/SiteViewer/alberg.html";
-	public static String testOutputFile = "C:/Users/markj/Documents/Personal/SiteViewer/alberg-fixed.html";
+	//public static String testInputFile = "C:/Users/markj/Documents/Personal/SiteViewer/alberg.html";
+	public static String testInputFile = "D:/Personal/SiteView/people.html";
+	//public static String testOutputFile = "C:/Users/markj/Documents/Personal/SiteViewer/alberg-fixed.html";
+	public static String testOutputFile = "D:/Personal/SiteView/people.html";
 	
 	// Fix all files
 	//public static String rootFolder = "C:/apache-tomcat-9.0.40/webapps/nolaria";
@@ -42,17 +52,25 @@ public class FixInPlace {
 	 * @param args - not used.
 	 */
 	public static void main(String[] args) {
-		//app.fixOneFile(testInputFile, testOutputFile);	//	Just fix the specified file - used for testing.
-		//app.fixAllFiles(rootFolder, testOutputFile);	//	Fix all files starting at the root specified and save to test file.
-		//app.fixAllFiles(rootFolder, null);			//	Fix all files starting at the root specified and save to real file.
-		//app.analyzeAllFiles(rootFolder);				//	Collect bug statistics starting at the root specified.
-		
-		File rootFile = new File(rootFolder);
-		app.recursiveImageWalker(0, rootFile);
-		
-		//String testFileName = "D:\\apache-tomcat-9.0.40/webapps/nolaria/aurelia/uvarfestin/gunderstaad/gunderstaad-journal.html";
-		//File testFile = new File(testFileName);
-		//app.checkForMissingImages(0, testFile);
+		try {
+			//app.fixOneFile(testInputFile, testOutputFile);	//	Just fix the specified file - used for testing.
+			//app.fixAllFiles(rootFolder, testOutputFile);	//	Fix all files starting at the root specified and save to test file.
+			//app.fixAllFiles(rootFolder, null);			//	Fix all files starting at the root specified and save to real file.
+			//app.analyzeAllFiles(rootFolder);				//	Collect bug statistics starting at the root specified.
+			
+			//File rootFile = new File(rootFolder);
+			//app.recursiveImageWalker(0, rootFile);		//	Fix image references for the Page ID model.
+			
+			//String testFileName = "D:\\apache-tomcat-9.0.40/webapps/nolaria/aurelia/uvarfestin/gunderstaad/gunderstaad-journal.html";
+			//File testFile = new File(testFileName);
+			//app.checkForMissingImages(0, testFile);
+			
+			File testFile = new File(testInputFile);
+			app.fixLinks(0, testFile);//	Fix embedded links to use the Page ID model.
+		}
+		catch (Exception ex) {
+			ex.printStackTrace();
+		}
 	}
 
 	/**
@@ -506,6 +524,48 @@ public class FixInPlace {
 			//System.out.println(indent(depth+1) + "New Offset: " + offset);
 		}
 		
+	}
+	
+	/**
+	 * With the migration to the Page ID model, all links embedded in pages are broken.  They currently
+	 * have a URL this is path based.  This method finds all links in a page and updates them to to use the Page ID
+	 * associated with that page.  This requires a database lookup using a select with path and file name.
+	 * 
+	 * @param depth
+	 * @param file
+	 * @throws Exception
+	 */
+	public void fixLinks(int depth, File file) throws Exception {
+		System.out.println("Fixing links in: "+file.getName());
+		
+		/*  The standard Xerces DOM parser won't work on HTML files.
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		DocumentBuilder parser = factory.newDocumentBuilder();		
+		Document doc = parser.parse(file);		
+		DocumentType docType = doc.getDoctype();
+		System.out.println ("Document Type: "+docType.getName());
+		*/
+		
+		//	Parse the HTML document.
+		String htmlStr = this.loadFile(testInputFile);
+		org.jsoup.parser.Parser parser = org.jsoup.parser.Parser.htmlParser();
+		Document doc = parser.parseInput(htmlStr, "file:///D:/Personal/SiteView/people.html");
+		String baseUri = doc.baseUri();
+		String pageTitle = doc.title();
+		System.out.println("Document Base URI: "+baseUri+"\n");
+		
+		//	Find all of the HREFs.
+		System.out.println("Links found in: "+pageTitle);
+		Element root = doc.body();
+		Elements links = root.getElementsByTag("a");
+		for (Element link : links) {
+			//Node n = (Node) link;
+			String linkUrl = link.attr("abs:href");
+			System.out.println("\t"+linkUrl);
+			
+			PageRegistry registry =new PageRegistry();
+			//PageId pg = registry.getPageByFileName();
+		}
 	}
 	
 	

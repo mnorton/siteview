@@ -161,5 +161,32 @@ public class Util {
 		return new PageInfo(title,name,pid);	
 	}
 
-
+	/**
+	 * TODO:  Move this to the com.nolaria.sv.db.Util class
+	 * Return a string where each word is capitalized.
+	 * For example "pleasure dome 1" becomes "Pleasure Dome 1"
+	 * 
+	 * Because words are isolated by a space, dashed strings are treated as a single word.
+	 * Thus "pleasure dome-1" becomes "Pleasure Dome-1"
+	 * 
+	 * @param title
+	 * @return capitalized title
+	 */
+	public String capitalize(String title) {
+		//	Capitalize words.
+		String[] parts = title.split(" ");
+		String capTitle = "";
+		for (String word : parts) {
+			if (word.length() > 0) {
+				char cap = Character.toUpperCase(word.charAt(0));
+				String capWord = cap + word.substring(1, word.length());
+				//System.out.println("\tCap: "+cap+" word: "+capWord);
+				capTitle += capWord + " ";
+			}
+			else
+				capTitle += " ";
+		}
+		capTitle = capTitle.trim();
+		return capTitle;
+	}
 }

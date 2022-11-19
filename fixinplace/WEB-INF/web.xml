@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee
+  http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+version="3.1">
+
+	<servlet>
+		<servlet-name>fixinplace</servlet-name>
+		<servlet-class>com.nolaria.siteview.fix.FixInPlace</servlet-class>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>fixinplace</servlet-name>
+		<url-pattern>/fixinplace</url-pattern>
+	</servlet-mapping>
+
+</web-app>
