@@ -32,7 +32,7 @@ public class RegistryConnector {
 
 			//	See if the connector has not been created.
 			if (RegistryConnector.connector == null) {
-				System.out.println ("Creating a new connector.");
+				//System.out.println ("Creating a new connector.");
 				
 				//	Create one.
 				RegistryConnector.connector = RegistryConnector.newConnector();

@@ -3,6 +3,7 @@ package com.nolaria.sv.db;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Date;
 import java.util.List;
 import java.util.Vector;
 
@@ -13,7 +14,29 @@ import java.util.Vector;
  * @author markjnorton@gmail.com
  */
 public class PageIndex {
+	private static String RESET_QUERY = "delete from page_index";
 
+	/**
+	 * This is a runnable entry point to provide support for indexing all pages
+	 * and potentially test functions.
+	 * 
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		try {
+			PageIndex pageIndex = new PageIndex();
+			
+			//	Index all pages.
+			pageIndex.indexAll();
+		}
+		catch (PageException pe) {
+			System.out.println("Exception - "+pe.getMessage()+" caused by "+pe.getCause());
+		}
+		catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+	
 	/**
 	 * Index the page given by extracting keywords and creating entries
 	 * in the page_index table.
@@ -28,11 +51,13 @@ public class PageIndex {
 		//	Create all of the queries.
 		List<String> queries = new Vector<String>();
 		for (String key : keywords) {
+			if (key.length() > 40)	//	If the word is too long, just skip it.
+				continue;
 			StringBuffer qBuf = new StringBuffer();
 			qBuf.append("insert into page_index values (");
 			qBuf.append("'" + key + "', ");
 			qBuf.append("'" + page.id + "', ");
-			qBuf.append("'" + page.title + "', ");
+			qBuf.append("'" + page.title.replace('\'', '´') + "', ");	//	Handle apostrophes.
 			qBuf.append("'" + page.path + "'");
 			qBuf.append(")");
 			queries.add(qBuf.toString());
@@ -52,6 +77,62 @@ public class PageIndex {
 		catch (SQLException sql) {
 			System.out.println(query);
 			throw new PageException(sql.getMessage(), sql.getCause());
-		}	
+		}
+	}
+	
+	/**
+	 * Index all non-archived pages.
+	 * WARNING:  SiteView search will not work until indexing is completed.
+	 * 
+	 * @throws PageException
+	 */
+	public void indexAll() throws PageException {
+		Date start = new Date();
+		//System.out.println("Start: "+start);
+
+		PageRegistry pr = new PageRegistry();
+		List<String> ids = pr.getAllIds();
+		
+		this.reset();	//	Delete all records in page_index table.
+		
+		System.out.println("Pages to index: "+ids.size());
+		
+		//	Loop over pages and index them.
+		int i=1;
+		for (String id : ids) {
+			System.out.println (i+". Processing: "+id);
+			PageId page = pr.getPage(id);
+			try {
+				this.index(page);
+			}
+			catch (Exception ex) {
+				//	Note that the exception is swallowed so that indexing can continue.
+				System.out.println("**** Exception in indexAll(): "+ex.getMessage());
+			}
+			i++;
+		}
+
+		Date end = new Date();
+		long elapsed = end.getTime() - start.getTime();
+		System.out.println("Start: "+start);
+		System.out.println("End: "+end);
+		System.out.println("Duration: "+elapsed/1000L+" secs");
+	}
+	
+	/**
+	 * Reset page indexing by deleting all records in the page_index table.
+	 * WARNING:  SiteView search will not work until indexing is restored.
+	 * @throws PageException
+	 */
+	public void reset() throws PageException {
+		Connection connector = RegistryConnector.getConnector();
+		try  {
+			Statement stmt = connector.createStatement();
+			stmt.executeUpdate(RESET_QUERY);
+		}
+		catch (SQLException sql) {
+			throw new PageException(sql.getMessage(), sql.getCause());
+		}
+
 	}
 }

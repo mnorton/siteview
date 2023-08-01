@@ -191,10 +191,7 @@ public class PageId {
 			}
 			//System.out.println("Content strings found: "+content.size());
 			
-			//	4.  Clean up punctuation
-			//this.cleanPunctuation(content);
-			
-			//	5.  Merge all strings extracted from the HTML.
+			//	4.  Merge all strings extracted from the HTML.
 			StringBuffer allText = new StringBuffer();
 			for (String s : content) {
 				/*	Attempts to fix the &nbsp; issue which JSoup doesn't handle well.
@@ -210,7 +207,7 @@ public class PageId {
 			String mergedContent = allText.toString();
 			//System.out.println("Merged content size: "+mergedContent.length());
 			
-			//	6.  Create a list of tagged words.
+			//	5.  Create a list of tagged words.
 			MaxentTagger tagger = new MaxentTagger(PageId.TAGGER_MODEL);		
 			PennTreebankTokenizer tokenizer = new PennTreebankTokenizer(new StringReader(mergedContent));
 			List<String> uncleanTokens  = tokenizer.tokenize();
@@ -224,7 +221,7 @@ public class PageId {
 			List<TaggedWord> taggedWords = tagger.apply(words);
 			System.out.println("Tagged words found: "+taggedWords.size());
 			
-			//	7.  Create a list of keywords.
+			//	6.  Create a list of keywords.
 			this.keywords = new Vector<String>();
 			for (TaggedWord w : taggedWords) {
 				String twWord = w.word();
@@ -241,7 +238,7 @@ public class PageId {
 
 		}
 		catch (IOException io) {
-			throw new PageException(io.getCause().getMessage());
+			throw new PageException(io.getMessage(), io.getCause());
 		}	
 	}
 
@@ -330,6 +327,7 @@ public class PageId {
 		//str = str.replaceAll("-", "");	//	Remove dashes.		
 		//str = str.replace('/', ' ');	//	Remove slash.
 		str = str.replaceAll("/", "");	//	Remove slashes.		
+		str = str.replace('\\', ' ');	//	Remove back slash.
 		str = str.replace('+', ' ');	//	Remove plus.
 		str = str.replace('&', ' ');	//	Remove ampersand.
 		str = str.replace('*', ' ');	//	Remove asterisk.

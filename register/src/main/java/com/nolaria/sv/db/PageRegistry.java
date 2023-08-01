@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class PageRegistry {	
 	private static String PAGE_BY_ID_QUERY = "select site,title,file,path from page_registry where id=";
 	private static String ALL_PAGES_QUERY = "select id,site,title,file,path from page_registry where archived!='T'";
+	private static String ALL_IDS_QUERY = "select id from page_registry where archived!='T'";
 	// insert into page_registry (id,site,title,file,path) values ('654b7d10-a431-4cec-9d1d-4262209c9b56','nolaria','Books','books.html','/home');
 	private static String REGISTER_PAGE_QUERY = "insert into page_registry (id,site,title,file,path) values ";
 	private static String PAGE_DELETE_BY_ID_QUERY = "delete from page_registry where id=";
@@ -69,6 +70,37 @@ public class PageRegistry {
 	}
 
 	/**
+	 * Get a list of all registered pages.
+	 * 
+	 * @return List of Page
+	 * @throws PageException
+	 */
+	public List<String> getAllIds()  throws PageException {
+		List<String> ids = new Vector<String>();
+		
+		//this.checkConnector("get all");
+		
+		Connection connector = RegistryConnector.getConnector();
+		
+		try(Statement stmt = connector.createStatement())  {		
+			ResultSet rs = stmt.executeQuery(ALL_IDS_QUERY);
+			rs.beforeFirst();
+			
+			// Extract data from result set
+			while (rs.next()) {
+				// Retrieve by column name
+				String id = rs.getString("id");				
+				ids.add(id);
+			}
+		}
+		catch (SQLException sql) {
+			throw new PageException(sql.getMessage(), sql.getCause());
+		}
+
+		return ids;
+	}
+
+	/**
 	 * Get the page object for the id passed.
 	 * 
 	 * @param id
@@ -76,6 +108,9 @@ public class PageRegistry {
 	 * @throws PageException
 	 */
 	public PageId getPage(String id) throws PageException {
+		if (id == null)
+			throw new PageException("Null id pointer passed to getPage().");
+		
 		PageId page = null;
 		
 		//this.checkConnector("get single");
