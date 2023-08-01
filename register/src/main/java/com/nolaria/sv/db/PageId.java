@@ -31,10 +31,12 @@ import edu.stanford.nlp.trees.PennTreebankTokenizer;
  * @author markjnorton
  *
  */
-public class PageId {
+public class PageId implements Comparable<PageId> {
 	//	TODO:  This is a bit of a hack, but including the model as a resource into the JAR would make it HUGE.
 	public static final String TAGGER_MODEL = "D:/Personal/SiteView/stanford-tagger-4.2.0/stanford-postagger-full-2020-11-17/models/english-left3words-distsim.tagger";
-
+	public static enum SortMode {PATH, TITLE, ID, FILE};
+	public static SortMode SortOn = SortMode.PATH;
+	
 	public String id;		//	A UUID that uniquely identifies this page
 	public String site;		//	Web site name
 	public String title;	//	Title of this page
@@ -385,4 +387,34 @@ public class PageId {
 		}
 	}
 
+	/**
+	 * This is a Comparator method that allows PageId objects to be sorted.
+	 * A public static variable is used to set which field to sort on.
+	 * 
+	 * @param o
+	 * @return sort comparison
+	 */
+	@Override
+	public int compareTo(PageId page) {
+		switch (SortOn) {
+			case ID:
+				return this.id.compareTo(page.id);				
+			case TITLE:
+				return this.title.compareTo(page.title);				
+			case FILE:
+				return this.file.compareTo(page.file);				
+			case PATH:
+			default:
+				return this.path.compareTo(page.path);				
+		}
+	}
+
+	/**
+	 * This is a convenience method that allows the sort mode to be specified or changed.
+	 * 
+	 * @param mode
+	 */
+	public static void setSortMode(SortMode mode) {
+		PageId.SortOn = mode;
+	}
 }

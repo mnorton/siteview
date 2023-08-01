@@ -13,12 +13,12 @@ package com.nolaria.sv.db;
  *
  */
 public class PageInfo {
-	public String title = null;	//	The page title.
+	public String title = null;		//	The page title.
 	public String name = null;		//	The page name.
 	public String pid = null;		//	The page identifier (UUID).
 
 	/**
-	 * Constructor given all page info.
+	 * Constructor given title, name, and pid.
 	 * @param title
 	 * @param name
 	 * @param pid

@@ -1,6 +1,7 @@
 package com.nolaria.sv.db;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Date;
@@ -15,6 +16,7 @@ import java.util.Vector;
  */
 public class PageIndex {
 	private static String RESET_QUERY = "delete from page_index";
+	private static Boolean INDEX_ALL_ENDABLED = false;
 
 	/**
 	 * This is a runnable entry point to provide support for indexing all pages
@@ -27,7 +29,10 @@ public class PageIndex {
 			PageIndex pageIndex = new PageIndex();
 			
 			//	Index all pages.
-			pageIndex.indexAll();
+			if (INDEX_ALL_ENDABLED)
+				pageIndex.indexAll();
+			else
+				System.out.println("Index All is disabled.");
 		}
 		catch (PageException pe) {
 			System.out.println("Exception - "+pe.getMessage()+" caused by "+pe.getCause());
@@ -56,9 +61,7 @@ public class PageIndex {
 			StringBuffer qBuf = new StringBuffer();
 			qBuf.append("insert into page_index values (");
 			qBuf.append("'" + key + "', ");
-			qBuf.append("'" + page.id + "', ");
-			qBuf.append("'" + page.title.replace('\'', '´') + "', ");	//	Handle apostrophes.
-			qBuf.append("'" + page.path + "'");
+			qBuf.append("'" + page.id + "'");
 			qBuf.append(")");
 			queries.add(qBuf.toString());
 			//String query = qBuf.toString();
@@ -134,5 +137,41 @@ public class PageIndex {
 			throw new PageException(sql.getMessage(), sql.getCause());
 		}
 
+	}
+	
+	/**
+	 * Search for pages containing the parameters passed>
+	 * 
+	 * @param parameters
+	 * @return List of PageId
+	 */
+	public List<PageId> search(String parameters) throws PageException {
+		List<PageId> pages = new Vector<PageId>();
+		
+		PageRegistry pr = new PageRegistry();
+		Connection connector = RegistryConnector.getConnector();
+		
+		String query = "select * from page_index where word like '"+parameters+"'";
+		
+		try(Statement stmt = connector.createStatement())  {		
+			ResultSet rs = stmt.executeQuery(query);
+			rs.beforeFirst();
+			
+			// Extract data from result set
+			while (rs.next()) {
+				// Retrieve by column name
+				String id = rs.getString("id");
+				
+				// String id, String site, String title, String file, String path
+				//PageId page = new PageId(id, site, title, file, path);
+				PageId page = pr.getPage(id);
+				
+				pages.add(page);
+				}
+		}
+		catch (SQLException sql) {
+			throw new PageException(sql.getMessage(), sql.getCause());
+		}
+		return pages;
 	}
 }
