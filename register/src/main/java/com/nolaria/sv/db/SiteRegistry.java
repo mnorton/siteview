@@ -39,6 +39,7 @@ public class SiteRegistry {
 			// Extract data from result set
 			while (rs.next()) {
 				// Retrieve by column name
+				@SuppressWarnings("unused")
 				String id = rs.getString("id");
 				String name = rs.getString("name");
 				String path = rs.getString("path");

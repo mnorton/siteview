@@ -172,7 +172,7 @@ public class Util {
 	 * @param title
 	 * @return capitalized title
 	 */
-	public String capitalize(String title) {
+	public static String capitalize(String title) {
 		//	Capitalize words.
 		String[] parts = title.split(" ");
 		String capTitle = "";
@@ -189,4 +189,5 @@ public class Util {
 		capTitle = capTitle.trim();
 		return capTitle;
 	}
+	
 }

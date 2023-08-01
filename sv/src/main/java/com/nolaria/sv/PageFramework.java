@@ -166,6 +166,7 @@ public class PageFramework {
 	 * 
 	 * @return full navigation text.
 	 */
+	@SuppressWarnings("unused")
 	private String getFullNavigation() {
 		StringBuffer sb = new StringBuffer();
 		this.directoryWalker(0, "", sb);

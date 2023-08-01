@@ -50,10 +50,25 @@ public class IndexableString {
 	}
 	
 	/**
-	 * Return the indexable string.
+	 * Return the string part.
 	 * @return str
 	 */
 	public String getStr() {
 		return this.str;
+	}
+	
+	/**
+	 * Set the string part of an indexable string.
+	 */
+	public void setStr(String s) {
+		this.str = s;
+	}
+	
+	/**
+	 * Returning a pretty form of the indexable string.
+	 * @return pretty string
+	 */
+	public String toString() {
+		return this.tag + ","+this.level + ": "+this.str;
 	}
 }

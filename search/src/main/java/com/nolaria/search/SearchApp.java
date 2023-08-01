@@ -7,11 +7,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -34,7 +32,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.*;
 import org.jsoup.select.Elements;
 
-import com.nolaria.sv.db.*;
+//import com.nolaria.sv.db.*;
 //import org.jsoup.select.*;
 
 /**
@@ -54,12 +52,13 @@ public class SearchApp {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		System.out.println ("Lucene Search Engine Test");
-		System.out.println ("-------------------------\n");
+		System.out.println ("Search Indexing Test");
+		System.out.println ("--------------------\n");
 		File testFile = new File(SearchApp.testFileName1);
 		//SearchApp.app.simpleTest(testFile);
 		//SearchApp.app.parseFile(testFile);
-		SearchApp.app.complextTest();
+		//SearchApp.app.complextTest();
+		SearchApp.app.taggedTest(testFile);
 	}
 
 	/**
@@ -150,6 +149,21 @@ public class SearchApp {
 			System.out.println("Query Parser Error: "+pe.getCause());			
 		}
 		*/
+	}
+	
+	/**
+	 * Parse a page using JSoup, then tag words found using the Stanford NLP Maxent tagger.
+	 */
+	public void taggedTest(File f) {
+		//	Extract strings from a parsed HTML page.
+		ParsedFile pf = this.parseFile(f);
+		//System.out.println("Strings found: "+pf.strings.size()+"\n");
+
+		//	Merge strings and create a list of tagged words.
+		pf.findKeywords();
+		System.out.println("Keywords found: "+pf.getKeywordsCount());
+		System.out.println(pf.toKeywordString());
+		
 	}
 	
 	/**
@@ -264,6 +278,11 @@ public class SearchApp {
 		}		
 	}
 	
+	/**
+	 * Only text in these HTML tags are considered indexable.
+	 * @param tagName
+	 * @return
+	 */
 	public boolean isIndexable(String tagName) {
 		switch (tagName) {
 		case "div":
@@ -278,5 +297,5 @@ public class SearchApp {
 		}
 		return false;
 	}
-		
+	
 }
