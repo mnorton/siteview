@@ -28,21 +28,30 @@ import com.nolaria.sv.db.PageInfo;
  *
  */
 public class PageIdFramework {
+	//	Constants
 	public static String DEFAULT_SITE = "nolaria";
 	public static String DEFAULT_BANNER = "/media/customLogo.gif";
 	public static int MAX_NAV_DEPTH = 100;
 	public static String FILE_ROOT = "D:\\apache-tomcat-9.0.40\\webapps";
+	public static enum NavModeType {BROWSE, SEARCH};
 	
-	private static SiteRegistry siteRegistry = null;
-	private static PageRegistry pageRegistry = null;
-
+	//	Database APIs.
+	private static SiteRegistry siteRegistry = new SiteRegistry();;
+	private static PageRegistry pageRegistry = new PageRegistry();
+	private static PageIndex pageIndex = new PageIndex();
+	
 	public String error = null;
 	public HttpServletRequest request = null;
 	
+	//	Site and page information.
 	public String siteName = null;
 	public Site site = null;
 	public String pageId = null;
 	public PageId page = null;
+	
+	//	Search parameters
+	public String parameters = null;
+	public NavModeType navMode = NavModeType.BROWSE;
 	
 	public Map<String,PageId> pages = new HashMap<String,PageId>();
 	
@@ -66,23 +75,23 @@ public class PageIdFramework {
 		this.pageId = (String)request.getParameter("id");
 		if (this.pageId == null)
 			this.error ="A page identifier was not provided.";
-		
-		System.out.println ("Page request for: "+this.siteName+" - "+this.pageId);
-		
-		//	Create the Page and Site Registries.
-		siteRegistry = new SiteRegistry();
-		pageRegistry = new PageRegistry();
-		
+				
 		System.out.println("\n============================ Site Viewer =============================\n");
+		System.out.println ("Page request for: "+this.siteName+" - "+this.pageId+"\n");
 		
+		//	Get the Site object.
 		this.site = siteRegistry.getSiteByName(this.siteName);
-		if (this.site == null )
+		if (this.site == null ) {
+			//	Since the site name defaults to nolaria, this should never fail.
 			this.error = "Site not found for: "+this.siteName;
+		}
 		else
 			System.out.println ("Site: "+site.toString());
 		
+		//	Get the PageId object.
 		this.page = pageRegistry.getPage(this.pageId);
 		if (this.page == null) {
+			//	This can happen by manually entering a URL with an invalid page ID.
 			System.out.println("Page not found for:  "+this.pageId);
 			this.error = "Page not found for: "+this.pageId;
 			return;
@@ -127,10 +136,19 @@ public class PageIdFramework {
 		String newTitle = this.request.getParameter("new-title");
 		if ( (newTitle != null) && (newTitle.length() > 0) )
 			this.createNewPage(newTitle);
+		
+		//	Check for a search request.
+		this.parameters = this.request.getParameter("parameters");
+		if ( (parameters != null) && (parameters.length() > 0) ) {
+			System.out.println("Entering search results mode.");
+			this.navMode = NavModeType.SEARCH;
+		}
+		else
+			this.navMode = NavModeType.BROWSE;			
 
 		//	Check for an update page request.
 		String op = this.request.getParameter("op");
-		System.out.println("Parameter op value: "+op);
+		//System.out.println("Parameter op value: "+op);
 		if ( (op != null) && op.compareTo("update") == 0)
 			this.updateCurrentPage();
 		
@@ -152,7 +170,7 @@ public class PageIdFramework {
 
 		sb.append("\t\t<span style=\\\"color: yellow;\\\"><button type=\"submit\" form=\"new-page-form\">\n");
 		sb.append("\t\t\t<b>New Page</b></button></span>&nbsp;&nbsp;\n");
-		sb.append("\t\t</span>&nbsp;&nbsp;\n");
+		sb.append("\t\t&nbsp;&nbsp;\n");
 		sb.append("\t\t<label for=\"new-title\"><b>Title:</b></label>\n");
 		sb.append("\t\t<input type=\"text\" id=\"new-title\" name=\"new-title\">\n");
 
@@ -168,7 +186,23 @@ public class PageIdFramework {
 		sb.append("</button>");
 		sb.append("</a>\n");
 
-		sb.append("\t</form>\n");		
+		sb.append("\t</form>");
+		
+		//	The search form.
+		sb.append("\t<form id=\"search-form\" method=\"get\" action=\"/sv\">\n");
+		sb.append("\t\t<span style=\"margin-left: 130px;\" />");
+
+		sb.append("\t\t<input type=\"hidden\" name=\"site\" value=\""+this.page.getSite()+"\">\n");
+		sb.append("\t\t<input type=\"hidden\" name=\"id\" value=\""+this.page.getId()+"\">\n");
+		
+		sb.append("\t\t<input type=\"text\" id=\"parameters\" name=\"parameters\">");
+		sb.append("\t\t&nbsp;&nbsp;");
+		sb.append("\t\t<span style=\"color: yellow;\">");
+		sb.append("\t\t\t<button type=\"submit\" form=\"search-form\"><b>Search</b></button>");
+		sb.append("\t\t</span>");
+		
+		sb.append("\t</form>");
+		
 		sb.append("\t</div>\n");
 
 		return sb.toString();
@@ -193,9 +227,18 @@ public class PageIdFramework {
 	public String getNavigation() {
 		if (this.page == null)
 			return "<h1>Page object is null</h1>\n";
-		return this.getDropNavigation();
+		if (this.navMode == NavModeType.BROWSE)
+			return this.getDropNavigation();
+		else
+			return this.getResultsNavigation();
 	}
 
+	/**
+	 * Get the footer mark-up for the footer pane.
+	 * Not currently used.
+	 * 
+	 * @return HTML
+	 */
 	public String getFooter() {
 		return "<h1>Footer</h1>";
 	}
@@ -213,6 +256,43 @@ public class PageIdFramework {
 		sb.append("</ul></div>\n");
 		
 		return sb.toString();		
+	}
+	
+	/**
+	 * Get the text for search results navigation.
+	 * 
+	 * @return search results navigation text
+	 */
+	private String getResultsNavigation() {
+		StringBuffer sb = new StringBuffer();
+		
+		//	Add button to return to browse navigation.
+		sb.append("\t\t<a href=\"/sv?site="+this.page.getSite()+"&id="+this.page.getId()+"\"/>\n");
+		sb.append("\t\t\t<button type=\"button\">");
+		sb.append("<b>Browse</b>");
+		sb.append("</button>\n");
+		sb.append("\t\t</a>\n");
+		
+		sb.append("<h4>Search Results</h4>\n");
+		
+		try {
+			List<PageId> pages = pageIndex.search(this.parameters);
+			sb.append("Pages found: "+pages.size()+" for "+this.parameters+"<br><br>");
+			for (PageId page : pages) {
+				String expandoPath = page.path.replaceAll("/", " > ");
+				sb.append(expandoPath);
+				sb.append("&nbsp;&nbsp;");
+				//sb.append("\t<a target=\"content-frame\" href=\"/sv?site="+this.page.getSite()+"&id="+this.page.getId()+"\">");
+				sb.append("\t<a target=\"content-frame\" href=\""+page.getDirectUrl()+"\" >");
+				sb.append(page.title);
+				sb.append("</a><br>");
+			}
+		}
+		catch (PageException pe) {
+			sb.append(pe.getMessage()); 
+		}
+		
+		return sb.toString();
 	}
 
 	/**
@@ -557,4 +637,5 @@ public class PageIdFramework {
 			}
 		}
 	}
+	
 }

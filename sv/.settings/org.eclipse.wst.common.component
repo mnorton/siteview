@@ -11,6 +11,9 @@
         <wb-resource deploy-path="/WEB-INF/classes" source-path="/src/main/resources"/>
                 
         <wb-resource deploy-path="/WEB-INF/classes" source-path="/WEB-INF"/>
+        <dependent-module archiveName="register-2.0.0.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/register/register">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
                 
         <property name="context-root" value="sv"/>
                 

@@ -20,7 +20,7 @@
 </head>
 <body>
 
-<div id="banner" style="width: 100%; height: 160px; border-style: solid; border-width: 1px; padding: 20px; background-color:#709d3e">
+<div id="banner" style="width: 100%; height: 180px; border-style: solid; border-width: 1px; padding: 20px; background-color:#709d3e">
 	<%= framework.getBanner()  %>
 </div>
 
@@ -39,7 +39,7 @@
 
 <div id="footer" style="height: 40px; width: 100%; border-style: solid; border-width: 1px; padding:20px; background-color:#709d3e">
 	<center>
-		© 2021 Mark J. Norton, All Rights Reserved<br>
+		© 2023 Mark J. Norton, All Rights Reserved<br>
 	</center>
 </div>
 

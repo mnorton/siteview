@@ -4,7 +4,7 @@
   
   <groupId>com.nolaria</groupId>
   <artifactId>sv</artifactId>
-  <version>2.0.1</version>
+  <version>3.0.0</version>
   <packaging>war</packaging>
   <name>sv Maven Webapp</name>
   <url>http://maven.apache.org</url>
@@ -31,11 +31,11 @@
 		<version>2.7.3</version>
 	</dependency>
 
-	<!-- Registry Classes -->
+	<!-- Registry Classes was 1.0.4 -->
 	<dependency> 
 		<groupId>com.nolaria</groupId>
 		<artifactId>register</artifactId>
-		<version>1.0.4</version>
+		<version>2.0.0</version>
 	</dependency>
 
     <!--  Not currently using JUnit testing.

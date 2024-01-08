@@ -36,6 +36,16 @@ import org.jsoup.select.Elements;
 //import org.jsoup.select.*;
 
 /**
+ * DEPRECATED - The code in this project was used to explore Lucene, which provided to be too difficult to use 
+ * for SiteView indexing.  A simpler approach was added to the register project by adding an indexAll() method.
+ */
+
+/**
+ * Aug. 1, 2023
+ * Originally created as a sandbox to experiment with Lucene, I also played with the
+ * Standford NLP Maxent tagger here, leading to full indexing of web pages.
+ * Indexing is now supported in the register package (register-2.0.0.jar).
+ * 
  * @author Mark J. Norton
  * @author markjnorton@gmail.com
  *

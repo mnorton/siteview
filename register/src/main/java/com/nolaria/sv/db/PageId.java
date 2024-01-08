@@ -160,8 +160,8 @@ public class PageId implements Comparable<PageId> {
 	 * @return iFrame mark-up
 	 */
 	public String getIFrame() {
-		//	This is the mark-up that puts an iFrame into the content pane.
-		return "\t<iframe src='"+this.getDirectUrl()+"' title='"+this.getTitle()+"'></iframe>\n";
+		//	This is the mark-up that puts an iFrame into the content pane. 
+		return "\t<iframe name=\"content-frame\" src='"+this.getDirectUrl()+"' title='"+this.getTitle()+"'></iframe>\n";
 	}
 	
 	/**

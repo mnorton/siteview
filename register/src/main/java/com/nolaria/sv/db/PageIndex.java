@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Vector;
@@ -46,6 +47,8 @@ public class PageIndex {
 	 * Index the page given by extracting keywords and creating entries
 	 * in the page_index table.
 	 * 
+	 * 1/7/2024:  Fixed a problem where null ids were getting inserted into the index.
+	 * 
 	 * @param page
 	 */
 	public void index (PageId page) throws PageException {
@@ -56,6 +59,8 @@ public class PageIndex {
 		//	Create all of the queries.
 		List<String> queries = new Vector<String>();
 		for (String key : keywords) {
+			if (page.id == null)
+				continue;			//	Fixes a problem where null ids were getting inserted into the index.
 			if (key.length() > 40)	//	If the word is too long, just skip it.
 				continue;
 			StringBuffer qBuf = new StringBuffer();
@@ -148,6 +153,8 @@ public class PageIndex {
 	public List<PageId> search(String parameters) throws PageException {
 		List<PageId> pages = new Vector<PageId>();
 		
+		System.out.println("Searching for "+parameters);
+		
 		PageRegistry pr = new PageRegistry();
 		Connection connector = RegistryConnector.getConnector();
 		
@@ -166,12 +173,24 @@ public class PageIndex {
 				//PageId page = new PageId(id, site, title, file, path);
 				PageId page = pr.getPage(id);
 				
-				pages.add(page);
+				if (page == null ) {
+					//	This can happen if records are deleted without re-indexing.
+					System.out.println("Page not found for id of: "+id);
+					continue;
+				}
+				else
+					pages.add(page);
 				}
 		}
 		catch (SQLException sql) {
 			throw new PageException(sql.getMessage(), sql.getCause());
 		}
+		
+		//	Sort the results on path.
+		if (pages == null || pages.size() ==0)
+			throw new PageException("No pages were found for "+parameters);
+		Collections.sort(pages);
+		
 		return pages;
 	}
 }
