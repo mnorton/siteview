@@ -17,7 +17,7 @@ import java.util.Vector;
  */
 public class PageIndex {
 	private static String RESET_QUERY = "delete from page_index";
-	private static Boolean INDEX_ALL_ENDABLED = false;
+	private static Boolean INDEX_ALL_ENABLED = true;
 
 	/**
 	 * This is a runnable entry point to provide support for indexing all pages
@@ -30,7 +30,7 @@ public class PageIndex {
 			PageIndex pageIndex = new PageIndex();
 			
 			//	Index all pages.
-			if (INDEX_ALL_ENDABLED)
+			if (INDEX_ALL_ENABLED)
 				pageIndex.indexAll();
 			else
 				System.out.println("Index All is disabled.");
