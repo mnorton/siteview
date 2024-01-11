@@ -17,6 +17,7 @@ import java.util.Vector;
  */
 public class PageIndex {
 	private static String RESET_QUERY = "delete from page_index";
+	private static String DEINDEX_QUERY = "delete from page_index where id='";
 	private static Boolean INDEX_ALL_ENABLED = true;
 
 	/**
@@ -56,19 +57,33 @@ public class PageIndex {
 		
 		Connection connector = RegistryConnector.getConnector();
 		
+		//	Check for a null page id.
+		if (page.id == null)
+			return;			//	Fixes a problem where null ids were getting inserted into the index.
+		
 		//	Create all of the queries.
-		List<String> queries = new Vector<String>();
+		//List<String> queries = new Vector<String>();
+		
+		//	Create a bulk insert query for all indexed words on this page.
+		StringBuffer qBuf = new StringBuffer();
+		qBuf.append("insert into page_index values ");
 		for (String key : keywords) {
-			if (page.id == null)
-				continue;			//	Fixes a problem where null ids were getting inserted into the index.
-			if (key.length() > 40)	//	If the word is too long, just skip it.
+			//	Filter out junk words.
+			char c = key.charAt(0);
+			if ((key.length() < 3) || (key.length() > 40))	//	If the word is too short or too long, just skip it.
 				continue;
-			StringBuffer qBuf = new StringBuffer();
-			qBuf.append("insert into page_index values (");
-			qBuf.append("'" + key + "', ");
+			if (!Character.isAlphabetic(c))
+				continue;
+			
+			// TODO: changing this to a bulk insert will probably speed up indexing.
+			// TODO:  INSERT INTO tbl_name (a,b,c) VALUES(1,2,3),(4,5,6),(7,8,9);
+			//StringBuffer qBuf = new StringBuffer();
+			//qBuf.append("insert into page_index values (");
+			qBuf.append("(");
+			qBuf.append("'" + key + "',");
 			qBuf.append("'" + page.id + "'");
 			qBuf.append(")");
-			queries.add(qBuf.toString());
+			//queries.add(qBuf.toString());
 			//String query = qBuf.toString();
 			//System.out.println(query);
 		}					
@@ -77,10 +92,14 @@ public class PageIndex {
 		String query = null;
 		try  {
 			Statement stmt = connector.createStatement();
+			stmt.executeQuery(qBuf.toString());
+			
+			/*
 			for (int i=0; i<queries.size(); i++) {
 				query = queries.get(i);
 				stmt.executeUpdate(query);
 			}
+			*/
 		}
 		catch (SQLException sql) {
 			System.out.println(query);
@@ -127,6 +146,24 @@ public class PageIndex {
 		System.out.println("Duration: "+elapsed/1000L+" secs");
 	}
 	
+	/**
+	 * Deindex a page by deleting all index records having the page ID passed.
+	 * 
+	 * @param pageId of page to deindex.
+	 * @throws PageException
+	 */
+	public void deindex(String id) throws PageException {
+		Connection connector = RegistryConnector.getConnector();
+		try  {
+			Statement stmt = connector.createStatement();
+			stmt.executeUpdate(DEINDEX_QUERY+id+"'");
+		}
+		catch (SQLException sql) {
+			throw new PageException(sql.getMessage(), sql.getCause());
+		}
+		System.out.println ("Page with an id of "+id+" was deindexed.");
+	}
+
 	/**
 	 * Reset page indexing by deleting all records in the page_index table.
 	 * WARNING:  SiteView search will not work until indexing is restored.

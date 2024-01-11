@@ -212,7 +212,7 @@ public class RegistryTest {
 	public boolean testSoftDeletePage() {
 		try {
 			System.out.println("\nSoft delete page test:");
-			this.pageRegistry.deletePage(id);
+			this.pageRegistry.archive(id);
 			System.out.println("\tPage was archived instead of deleted.");
 
 			System.out.println(RegistryConnector.isValid()?"CONNECTOR VALID":"CONNECTOR INVALID");
@@ -234,7 +234,7 @@ public class RegistryTest {
 	public boolean testHardDeletePage() {
 		try {
 			System.out.println("\nHard delete page test:");
-			this.pageRegistry.hardDeletePage(id);
+			this.pageRegistry.delete(id);
 			System.out.println("\tPage was completely deleted");
 
 			System.out.println(RegistryConnector.isValid()?"CONNECTOR VALID":"CONNECTOR INVALID");

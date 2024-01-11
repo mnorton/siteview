@@ -23,8 +23,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author markjnorton@gmail.com
  */
 public class PageRegistry {	
-	private static String PAGE_BY_ID_QUERY = "select site,title,file,path from page_registry where id=";
-	private static String ALL_PAGES_QUERY = "select id,site,title,file,path from page_registry where archived!='T'";
+	private static String PAGE_BY_ID_QUERY = "select * from page_registry where id=";
+	private static String ALL_PAGES_QUERY = "select * from page_registry where archived!='T'";
 	private static String ALL_IDS_QUERY = "select id from page_registry where archived!='T'";
 	// insert into page_registry (id,site,title,file,path) values ('654b7d10-a431-4cec-9d1d-4262209c9b56','nolaria','Books','books.html','/home');
 	private static String REGISTER_PAGE_QUERY = "insert into page_registry (id,site,title,file,path) values ";
@@ -55,9 +55,10 @@ public class PageRegistry {
 				String title = rs.getString("title");
 				String file = rs.getString("file");
 				String path = rs.getString("path");
+				String archived = rs.getString("archived");
 				
-				// String id, String site, String title, String file, String path
-				PageId page = new PageId(id, site, title, file, path);
+				// String id, String site, String title, String file, String path, boolean archived.
+				PageId page = new PageId(id, site, title, file, path, archived.charAt(0)=='T');
 				
 				pages.add(page);
 			}
@@ -126,9 +127,10 @@ public class PageRegistry {
 				String title = rs.getString("title");
 				String file = rs.getString("file");
 				String path = rs.getString("path");
+				String archived = rs.getString("archived");
 				
-				// String id, String site, String title, String file, String path
-				page = new PageId(id, site, title, file, path);
+				// String id, String site, String title, String file, String path, boolean archived.
+				page = new PageId(id, site, title, file, path, archived.charAt(0)=='T');
 			}
 		}
 		catch (SQLException sql) {
@@ -263,43 +265,59 @@ public class PageRegistry {
 	
 	/**
 	 * This method always performs a soft delete by marking the archived field to true.
+	 * Then it deindexes the page id passed.
 	 * 
 	 * @param id of page to archive
 	 * @throws PageException
 	 */
-	public void deletePage(String id) throws PageException {
-		//this.checkConnector("soft delete");
-		//String query = PAGE_DELETE_BY_ID_QUERY +"'"+id+"'";
+	public void archive(String id) throws PageException {
 		String query = "UPDATE page_registry SET archived='T' where id='"+id+"';";
 		
 		Connection connector = RegistryConnector.getConnector();
 		
+		//	Set the archived flag.
 		try(Statement stmt = connector.createStatement())  {		
 			stmt.execute(query);
 		}
 		catch (SQLException sql) {
 			throw new PageException(sql.getMessage(), sql.getCause());
-		}	
+		}
+		
+		//	Deindex the page.
+		PageIndex index = new PageIndex();
+		index.deindex(id);;
 	}
 	
 	/**
-	 * This method always performs a hard delete, removing the record associated with the page id passed.
+	 * This method always performs a hard delete, removing the record associated with the page id passed and deleting the file.
 	 * 
 	 * @param id of page to delete
 	 * @throws PageException
 	 */
-	public void hardDeletePage(String id) throws PageException {
+	public void delete(String id) throws PageException {
 		//this.checkConnector("hard delete");
 		String query = PAGE_DELETE_BY_ID_QUERY +"'"+id+"'";
 		
-		Connection connector = RegistryConnector.getConnector();
-		
-		try(Statement stmt = connector.createStatement())  {		
-			stmt.execute(query);
+		if (id.compareTo("Not-an-id") != 1) {	//	This hack is used to disable the code for now.
+			Connection connector = RegistryConnector.getConnector();
+
+			// TODO: Check if this is a folder.  If so, don't delete.
+			
+			//	Remove any indexes.
+			PageIndex indexer = new PageIndex();
+			indexer.deindex(id);
+			
+			//	Delete the page record.
+			try(Statement stmt = connector.createStatement())  {		
+				stmt.execute(query);
+			}
+			catch (SQLException sql) {
+				throw new PageException(sql.getMessage(), sql.getCause());
+			}
+			
+			//	Delete the page file.
+			//  TODO:  Delete the page file.
 		}
-		catch (SQLException sql) {
-			throw new PageException(sql.getMessage(), sql.getCause());
-		}	
 	}
 	
 	/**

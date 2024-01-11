@@ -6,6 +6,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * @deprecated
+ * I don't think this is being used anymore.  The TomCat console serves most of my needs
+ * Even if it is being used, it should be replaced with the Apache Commons logger (log4j2)
+ * 
  * A very simple logger that writes out to a file.
  * 
  * @author Mark Norton

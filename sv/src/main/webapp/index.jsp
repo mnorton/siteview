@@ -4,7 +4,7 @@
 	<%
 	   PageIdFramework framework = new PageIdFramework(request);
 	   
-	   String name = "UNKNOWN-NAME";
+	   //String name = "UNKNOWN-NAME";
 	   String title = "UNKNOWN-TITLE";
 	   if (framework.page != null)
 	       title = framework.page.getTitle();
@@ -14,7 +14,7 @@
 	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 	<meta http-equiv="Pragma" content="no-cache" />
 	<meta http-equiv="Expires" content="0" />
-	<meta name="title" content="<%= name %>" />
+	<meta name="title" content="<%= title %>" />
 	
 
 </head>

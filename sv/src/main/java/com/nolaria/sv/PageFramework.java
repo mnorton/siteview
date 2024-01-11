@@ -14,6 +14,9 @@ import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 
 /**
+ * @deprecated
+ * This hasn't been used in a long time. I'm probably keeping it around in case I need to re-use code.
+ * 
  * The Page Framework is the base class of the Site Viewer app. It is
  * responsible for managing all of the panes that can appear for the current
  * request.

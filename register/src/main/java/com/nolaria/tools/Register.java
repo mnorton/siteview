@@ -359,7 +359,7 @@ public class Register {
 			pageRegistry.createPage(pid, DEFAULT_SITE, "TEST", "test.html", "/test");
 			
 			//	Delete the test page created.
-			pageRegistry.deletePage(pid);
+			pageRegistry.delete(pid);
 		}
 		catch (PageException pg) {
 			System.out.println("\ttestRegisterPage: FAILED");

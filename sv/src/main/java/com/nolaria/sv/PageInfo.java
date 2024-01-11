@@ -9,6 +9,12 @@ package com.nolaria.sv;
  * 
  * Since this is really only used as a data structure, setters and getters are left out.
  * 
+ * Consider refactoring this out and using PageId instead.
+ * It is being used by PageIdFramework.updateCurrentPage(), but PageId could do the job just as well.  
+ * Originally it was used as a lightweight object (a Java Pea) to hold id, title, and name(filename).  
+ * PageId has the same fields.  I’d just need to be careful not to call methods that rely on site or path.  
+ * That could be handled by throwing a PageException
+ * 
  * @author markj
  *
  */

@@ -41,7 +41,8 @@ public class PageId implements Comparable<PageId> {
 	public String site;		//	Web site name
 	public String title;	//	Title of this page
 	public String file;		//	File name of this page
-	public String path;		//	File pat to this page
+	public String path;		//	File path to this page
+	public boolean archived;	//	Archive flag. True means archived.
 	
 	public List<String> keywords = new Vector<String>();	// List defaults to empty.
 	
@@ -53,13 +54,15 @@ public class PageId implements Comparable<PageId> {
 	 * @param name
 	 * @param file
 	 * @param path
+	 * @param archive
 	 */
-	public PageId (String id, String site, String name, String file, String path) {
-		this.id = id;		//	A UUID for the page.
-		this.site = site;	//	Web site associated with this page.
-		this.title = name;	//	Web page title.
-		this.file = file;	//	File name.
-		this.path = path;	//	Path to file name relative to Tomcat webapps dir.
+	public PageId (String id, String site, String name, String file, String path, boolean archived) {
+		this.id = id;			//	A UUID for the page.
+		this.site = site;		//	Web site associated with this page.
+		this.title = name;		//	Web page title.
+		this.file = file;		//	File name.
+		this.path = path;		//	Path to file name relative to Tomcat webapps dir.
+		this.archived = archived;	//	True if archived.
 	}
 
 	/**
@@ -103,7 +106,16 @@ public class PageId implements Comparable<PageId> {
 	}
 	
 	/**
-	 * Returns the file name of the page.
+	 * Returns the archive flag.
+	 * 
+	 * @return the archive flag value.
+	 */
+	public boolean getArchive() {
+		return this .archived;
+	}
+	
+	/**
+	 * Returns the complete file name of the page that includes the path starting at the drive root.
 	 * @return file name string
 	 */
 	public String getFullFileName() {
@@ -162,6 +174,24 @@ public class PageId implements Comparable<PageId> {
 	public String getIFrame() {
 		//	This is the mark-up that puts an iFrame into the content pane. 
 		return "\t<iframe name=\"content-frame\" src='"+this.getDirectUrl()+"' title='"+this.getTitle()+"'></iframe>\n";
+	}
+	
+	/**
+	 * Return true if this page contains other pages, ie. a folder.
+	 * 
+	 * @return true if this page is a folder.
+	 */
+	public boolean isFolder() {
+		String folderName = this.getFullFileName();
+		int offset = folderName.indexOf(".html");
+		folderName = folderName.substring(0, offset);
+		//System.out.println("PageId:  Folder name - "+folderName);
+		File dir = new File(folderName);
+		
+		if (dir.isDirectory())
+			return true;
+		else
+			return false;
 	}
 	
 	/**
@@ -260,13 +290,12 @@ public class PageId implements Comparable<PageId> {
 		return sb.toString();
 	}
 	
-	/***********************************************
-	 *              Private Methods                *
-	 **********************************************/
-
 	/**
 	 * Recursive HTML document scanner.
+	 * 
 	 * This walks over a DOM tree, extracts text, adds it to content, which is a list of strings.
+	 * This was used to explore the use of a Document Object Model (DOM) so that pages could be
+	 * modified.  FixInPlace might use this someday.
 	 * 
 	 * @param node
 	 */
@@ -288,6 +317,12 @@ public class PageId implements Comparable<PageId> {
 				htmlWalker(level++, cNode, content);
 		}		
 	}
+	
+	
+	
+	/***********************************************
+	 *              Private Methods                *
+	 **********************************************/
 	
 	/**
 	 * Only text in these HTML tags are considered indexable.

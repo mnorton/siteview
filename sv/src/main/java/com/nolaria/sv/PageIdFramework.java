@@ -148,9 +148,24 @@ public class PageIdFramework {
 
 		//	Check for an update page request.
 		String op = this.request.getParameter("op");
-		//System.out.println("Parameter op value: "+op);
+		System.out.println("Parameter op value: "+op);
 		if ( (op != null) && op.compareTo("update") == 0)
 			this.updateCurrentPage();
+		
+		//	Check for a delete request.
+		if ( (op != null) && op.compareTo("delete") == 0) {
+			String ref = this.request.getParameter("ref");
+			System.out.println("Parameter ref value: "+ref);
+			try {
+				PageIdFramework.pageRegistry.archive(ref); 
+			}
+			catch (PageException pg) {
+				System.out.println("Unable to delete page with id "+ref);
+				System.out.println(pg.getCause());
+			}
+			
+		}
+		
 		
 		//	TODO:  Create a means to find the banner image for any site.
 		//	Add the banner logo.
@@ -168,18 +183,21 @@ public class PageIdFramework {
 		sb.append("\t\t<input type=\"hidden\" name=\"site\" value=\""+this.page.getSite()+"\">\n");
 		sb.append("\t\t<input type=\"hidden\" name=\"id\" value=\""+this.page.getId()+"\">\n");
 
+		//	New page function.
 		sb.append("\t\t<span style=\\\"color: yellow;\\\"><button type=\"submit\" form=\"new-page-form\">\n");
 		sb.append("\t\t\t<b>New Page</b></button></span>&nbsp;&nbsp;\n");
 		sb.append("\t\t&nbsp;&nbsp;\n");
 		sb.append("\t\t<label for=\"new-title\"><b>Title:</b></label>\n");
 		sb.append("\t\t<input type=\"text\" id=\"new-title\" name=\"new-title\">\n");
 
+		//	Print function.
 		sb.append("\t\t&nbsp;&nbsp;<a target=\"_blank\" href=\"" + this.page.getDirectUrl() + "\"/>");
 		sb.append("<button type=\"button\">");
 		sb.append("<b>Print</b>");
 		sb.append("</button>");
 		sb.append("</a>\n");
 		
+		//	Update function.
 		sb.append("\t\t&nbsp;&nbsp;<a href=\"/sv?site="+this.page.getSite()+"&id="+this.page.getId()+"&op=update"+"\"/>");
 		sb.append("<button type=\"button\">");
 		sb.append("<b>Update</b>");
@@ -190,13 +208,23 @@ public class PageIdFramework {
 		
 		//	The search form.
 		sb.append("\t<form id=\"search-form\" method=\"get\" action=\"/sv\">\n");
-		sb.append("\t\t<span style=\"margin-left: 130px;\" />");
-
 		sb.append("\t\t<input type=\"hidden\" name=\"site\" value=\""+this.page.getSite()+"\">\n");
 		sb.append("\t\t<input type=\"hidden\" name=\"id\" value=\""+this.page.getId()+"\">\n");
-		
+				
+		//	Delete function is conditional.  Not displayed on pages that are a folder.
+		if (!this.page.isFolder()) {
+			//System.out.println("The page ["+this.page.getTitle()+"] is a folder.");
+			sb.append("\t\t<a href=\"http://localhost:8080/sv/?site=nolaria&id=961d30bb-c47b-4908-9762-d5918d477319&op=delete&ref="+this.page.getId()+"\"/>\n");
+			sb.append("\t\t<button type=\"button\"><b>Delete</b></button></a>\n");
+			sb.append("\t\t<span style=\"margin-left: 42px;\" />");
+		}
+		else
+			sb.append("\t\t<span style=\"margin-left: 100px;\" />");	//	Used before the Delete button.
+
+		//	Search function.
+		sb.append("\t\t<label for=\"parameters\"><b>Key:</b></label>\n");
 		sb.append("\t\t<input type=\"text\" id=\"parameters\" name=\"parameters\">");
-		sb.append("\t\t&nbsp;&nbsp;");
+		sb.append("\t\t&nbsp;");
 		sb.append("\t\t<span style=\"color: yellow;\">");
 		sb.append("\t\t\t<button type=\"submit\" form=\"search-form\"><b>Search</b></button>");
 		sb.append("\t\t</span>");
@@ -408,7 +436,12 @@ public class PageIdFramework {
 						sb.append(Util.tabber(level)+"Directory page not found for "+key+"<br>");
 						continue;
 					}
-
+					//	Check for archived (deleted) pages and skip them.
+					if (foundPage.getArchive()) {
+						System.out.println("Skipped archived page: "+foundPage.getTitle());
+						continue;
+					}
+					
 					//	Set the check flag (dropped down).
 					String pathParts[] = this.page.getPath().split("/");
 					String checked = "";
@@ -487,7 +520,12 @@ public class PageIdFramework {
 						System.out.println("Registration error: "+this.siteName+" - "+path+" - "+fn);
 					}
 					*/
-					sb.append(Util.tabber(level)+"File page not found for "+key+"<br>");
+					
+					//	If the page is archived, then a page won't be found for it.
+					// sb.append(Util.tabber(level)+"File page not found for "+key+"<br>");
+					
+					// Just log it.
+					System.out.println("Nav Content: File page not found for "+key+" - probably archived.");
 					continue;
 				}
 
