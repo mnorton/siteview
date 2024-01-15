@@ -132,10 +132,22 @@ public class PageIdFramework {
 				
 		StringBuffer sb = new StringBuffer();
 		
+		//	See if there is a new page or update request.
+		String op = this.request.getParameter("op");
+		//System.out.println("Parameter but-new value: "+butNew);
+		String butNew = this.request.getParameter("but-new");
+		//System.out.println("Parameter but-new value: "+butNew);
+		String butUp = this.request.getParameter("but-up");
+		//System.out.println("Parameter but-up value: "+butUp);
+
 		//	Check for a new page request.
 		String newTitle = this.request.getParameter("new-title");
-		if ( (newTitle != null) && (newTitle.length() > 0) )
+		if ( (butNew != null) && (butNew.compareTo("new") == 0) )
 			this.createNewPage(newTitle);
+		
+		//	Check for an update page request.
+		if ( (butUp != null) && butUp.compareTo("update") == 0)
+			this.updateCurrentPage(newTitle);
 		
 		//	Check for a search request.
 		this.parameters = this.request.getParameter("parameters");
@@ -146,12 +158,6 @@ public class PageIdFramework {
 		else
 			this.navMode = NavModeType.BROWSE;			
 
-		//	Check for an update page request.
-		String op = this.request.getParameter("op");
-		System.out.println("Parameter op value: "+op);
-		if ( (op != null) && op.compareTo("update") == 0)
-			this.updateCurrentPage();
-		
 		//	Check for a delete request.
 		if ( (op != null) && op.compareTo("delete") == 0) {
 			String ref = this.request.getParameter("ref");
@@ -184,8 +190,8 @@ public class PageIdFramework {
 		sb.append("\t\t<input type=\"hidden\" name=\"id\" value=\""+this.page.getId()+"\">\n");
 
 		//	New page function.
-		sb.append("\t\t<span style=\\\"color: yellow;\\\"><button type=\"submit\" form=\"new-page-form\">\n");
-		sb.append("\t\t\t<b>New Page</b></button></span>&nbsp;&nbsp;\n");
+		sb.append("\t\t<button type=\"submit\" name=\"but-new\" value=\"new\" form=\"new-page-form\">\n");
+		sb.append("\t\t\t<b>New Page</b></button>&nbsp;&nbsp;\n");
 		sb.append("\t\t&nbsp;&nbsp;\n");
 		sb.append("\t\t<label for=\"new-title\"><b>Title:</b></label>\n");
 		sb.append("\t\t<input type=\"text\" id=\"new-title\" name=\"new-title\">\n");
@@ -198,13 +204,13 @@ public class PageIdFramework {
 		sb.append("</a>\n");
 		
 		//	Update function.
-		sb.append("\t\t&nbsp;&nbsp;<a href=\"/sv?site="+this.page.getSite()+"&id="+this.page.getId()+"&op=update"+"\"/>");
-		sb.append("<button type=\"button\">");
+		sb.append("\t\t&nbsp;&nbsp;");
+		sb.append("<button type=\"submit\" name=\"but-up\" value=\"update\" form=\"new-page-form\">");
 		sb.append("<b>Update</b>");
 		sb.append("</button>");
-		sb.append("</a>\n");
+		sb.append("\n");
 
-		sb.append("\t</form>");
+		sb.append("\t</form>\n");
 		
 		//	The search form.
 		sb.append("\t<form id=\"search-form\" method=\"get\" action=\"/sv\">\n");
@@ -307,13 +313,16 @@ public class PageIdFramework {
 			List<PageId> pages = pageIndex.search(this.parameters);
 			sb.append("Pages found: "+pages.size()+" for "+this.parameters+"<br><br>");
 			for (PageId page : pages) {
+				String link = page.getUrl();
+				sb.append("<a target=\"_blank\" href=\""+link+"\">&#9899;&nbsp;</a>");
 				String expandoPath = page.path.replaceAll("/", " > ");
 				sb.append(expandoPath);
-				sb.append("&nbsp;&nbsp;");
-				//sb.append("\t<a target=\"content-frame\" href=\"/sv?site="+this.page.getSite()+"&id="+this.page.getId()+"\">");
+				sb.append("&nbsp;&nbsp;"); 
+				//sb.append("&nbsp;&nbsp;<a target=\"content-frame\" href=\"/sv?site="+this.page.getSite()+"&id="+this.page.getId()+"\">");
+				
 				sb.append("\t<a target=\"content-frame\" href=\""+page.getDirectUrl()+"\" >");
 				sb.append(page.title);
-				sb.append("</a><br>");
+				sb.append("</a><br>\n");
 			}
 		}
 		catch (PageException pe) {
@@ -644,31 +653,19 @@ public class PageIdFramework {
 	
 	/**
 	 * Update the database record associated with the ID of the current page from information in the page file.
+	 * Handle the update function (op = update) by replacing the current title with query parameter new-title value.
 	 */
-	public void updateCurrentPage() {
+	public void updateCurrentPage(String newTitle) {		
+		String currentTitle = this.page.getTitle();
 		
-		String relPath = "\\"+site.getName()+"\\"+this.page.getPath()+"\\"+this.page.getFile();
-		String contents = Util.fetchContents(relPath);
-		PageInfo headers = Util.getHeaderInfo(contents);
+		System.out.println("Prepared to update page: "+this.page.getTitle());
+		System.out.println("Current title: "+currentTitle+" to new title: "+newTitle);
 		
-		System.out.println("Preparing to update current page.");
-		System.out.println("File data: "+headers.toString());
-		System.out.println("DB data: "+this.page.toString());
-		
-		boolean updateNeeded = false;
-		
-		//	See if the title needs to be updated.
-		if (this.page.getTitle() == null || headers.title == null || this.page.getTitle().compareTo(headers.title) != 0) {
-			System.out.println("\nTitle is different in: "+relPath);
-			System.out.println("DB Title: ["+this.page.getTitle()+"] vs "+ "File Title: ["+headers.title+"]");
-			updateNeeded = true;
-		}
-
-		//	Do the update, if needed.
-		if (updateNeeded) {
+		//	Do the update.
+		if (newTitle != null) {
 			try {
-				PageIdFramework.pageRegistry.updatePage(this.page.getId(), this.site.getName(), headers.title, this.page.getFile(), this.page.getPath());
-				System.out.println("The current page ["+headers.title+"] whose id is: "+this.page.getId()+" was updated.");
+				PageIdFramework.pageRegistry.updatePage(this.page.getId(), this.site.getName(), newTitle, this.page.getFile(), this.page.getPath());
+				System.out.println("Update was successful.");
 			}
 			catch (PageException pe) {
 				System.out.println("Update failed: "+pe.getCause());
