@@ -177,6 +177,30 @@ public class PageId implements Comparable<PageId> {
 	}
 	
 	/**
+	 * This utility method returns a SQL query to update this PageId object.
+	 * The main purpose of this is to create a way to restore previous values of a PageId object after it has been modified (updated).
+	 * 
+	 * @return SQL update query
+	 */
+	public String getUpdateQuery() {
+		StringBuffer sb = new StringBuffer();
+		
+		//	Convert the archived boolean into the database form used.
+		String archivedFlag = "F";
+		if (this.archived)
+			archivedFlag = "T";
+		
+		sb.append("update page_registry set ");
+		sb.append("site='"+this.site+"',");
+		sb.append("title='"+this.title+"',");
+		sb.append("path='"+this.path+"',");
+		sb.append("archived='"+archivedFlag+"' where ");
+		sb.append("id='"+this.id+"';");
+		
+		return sb.toString();
+	}
+	
+	/**
 	 * Return true if this page contains other pages, ie. a folder.
 	 * 
 	 * @return true if this page is a folder.
@@ -283,9 +307,11 @@ public class PageId implements Comparable<PageId> {
 		
 		sb.append(title + ": ");
 		sb.append("is identified by: "+id+", ");
-		sb.append("in site: "+site);
+		//sb.append("in site: "+site);
 		//sb.append("located in: "+this.getFullFileName());
-		sb.append(" with path: "+this.getPath());
+		sb.append("with path: "+this.getPath()+", ");
+		sb.append("and file: "+this.getFile()+" ");
+		sb.append("archived: "+this.getArchive());
 		
 		return sb.toString();
 	}

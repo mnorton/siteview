@@ -6,6 +6,12 @@ package com.nolaria.siteview.fix;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.List;
+import java.util.Vector;
 
 import com.nolaria.sv.db.*;
 
@@ -42,6 +48,14 @@ public class FixInPlace {
 	//  Analysis files.
 	public static String bugDataFile = "C:/Users/markj/Documents/Personal/SiteViewer/bug-data.csv";
 	
+	//  CSS file to use when generating a header.
+	public static String cssGreen = "http://localhost:8080/nolaria/green.css";
+	public static String cssBlue = "http://localhost:8080/nolaria/blue.css";
+	
+	//	This can be used were needed.
+	public static PageRegistry registry = new PageRegistry();	//	Page registry database methods.
+	public static Connection connector = null;					//	A database connector, in case one is needed.
+	
 	public int fileCt = 0;	//	Bit of a hack using a global, but whatever, I'm lazy.
 	
 
@@ -65,8 +79,13 @@ public class FixInPlace {
 			//File testFile = new File(testFileName);
 			//app.checkForMissingImages(0, testFile);
 			
-			File testFile = new File(testInputFile);
-			app.fixLinks(0, testFile);//	Fix embedded links to use the Page ID model.
+			// This was the start of an effort to fix page embedded page links, but I don't think I got it working.
+			//File testFile = new File(testInputFile);
+			//app.fixLinks(0, testFile);//	Fix embedded links to use the Page ID model.
+			
+			//	Fix all records to restore their file names.  - 1/15/2024
+			//app.fixFileNamesByRecords();
+			app.fixFileNamesByFileInfo();
 		}
 		catch (Exception ex) {
 			ex.printStackTrace();
@@ -79,10 +98,11 @@ public class FixInPlace {
 	 * 
 	 * @param fileName - full path to the page to be fixed.
 	 * @param testOutputFile - path to output file or null if this is not a test.
+	 * @throws PageException 
 	 */
-	public void fixOneFile (String fileName, String testOutputFile) {
+	public void fixOneFile (String fileName, String testOutputFile) throws PageException {
 		//	Get the file's contents.
-		String content = this.loadFile(fileName);
+		//String content = FixInPlace.util.loadFile(fileName);
 		
 		//	Get the page name.  Used to fix titles.
 		File contentFile = new File(fileName);
@@ -93,15 +113,15 @@ public class FixInPlace {
 		//	Fix problems.  See comments in method, below.
 		try {
 			//String fixedContent = this.fixHeader1(content, pageName);	//	Fixes 1
-			String fixedContent = this.fixHeader2(content, pageName);	//	Fixes 2
+			String fixedContent = this.fixHeader2(fileName, pageName);	//	Fixes 2
 			
 			//System.out.println("\n"+fixedContent);
 			
 			//	Save out the fixed results.
 			if (testOutputFile != null)
-				this.saveFile(fixedContent, testOutputFile);	//	 Use this one to test a fix.
+				Util.saveFile(fixedContent, testOutputFile);	//	 Use this one to test a fix.
 			else
-				this.saveFile(fixedContent, fileName);			//	Use this one to fix for real.
+				Util.saveFile(fixedContent, fileName);			//	Use this one to fix for real.
 		}
 		catch (FixException fe) {
 			System.out.println("Fix Exception: "+fe.getMessage());
@@ -145,7 +165,7 @@ public class FixInPlace {
 		
 		//	Save the results
 		//System.out.println(sb.toString());
-		this.saveFile(sb.toString(), bugDataFile);
+		Util.saveFile(sb.toString(), bugDataFile);
 	}
 	
 	
@@ -184,8 +204,13 @@ public class FixInPlace {
 		
 		//	Otherwise, fix this file.
 		else {
-			this.fixOneFile(fileName, null);
-			this.fileCt++;
+			try {
+				this.fixOneFile(fileName, null);
+				this.fileCt++;
+			}
+			catch (PageException pg) {
+				System.out.println(pg.getMessage() + "Skip this file: "+fileName);
+			}
 		}
 
 	}
@@ -244,6 +269,117 @@ public class FixInPlace {
 		}
 	}
 
+	/**
+	 * Recursively walk all files and fix file names in page records using page header info.
+	 * 
+	 * @param depth
+	 * @param file
+	 */
+	public void recursiveFileNameFixer (int depth, File file) {
+		//System.out.println("File to scan:  "+file.getPath());
+		
+		//	Check for media folder.
+		String fn = file.getName();
+		if (fn.compareTo("media") == 0)
+			return;
+		//	Check for a css file.
+		if (fn.indexOf(".css") != -1)
+			return;
+
+		
+		//	If this is a directory, recurse to lower level.
+		if (file.isDirectory()) {
+			File[] files = file.listFiles();
+			for (File newFile : files) {
+				this.recursiveFileNameFixer(depth+1, newFile);
+			}
+		}
+		
+		//	Otherwise, collect statistics on this file.
+		else {
+			String fullFileName = file.getAbsolutePath();
+			try {
+				String content = Util.loadFile(fullFileName);
+				PageInfo meta = Util.getHeaderInfo(content);
+				if (meta == null) {
+					System.out.println("Unable to extract file info for: "+fullFileName);
+					return;
+				}
+				else {
+					PageId page = registry.getPage(meta.pid);
+					if (page == null)
+						return;
+					
+					//	See if this is one of the broken ones.
+					if (page.getFile().compareTo("oka-03.html") == 0) {
+						
+						/*	This was used to pull data on a random problem page.
+						if (this.fileCt == 20) {
+							System.out.println("File no. "+fileCt+" has a name of: "+fullFileName);
+							System.out.println("File metadata: "+meta.toString());
+							System.out.println("Page record: "+page.toString());
+						}
+						*/
+
+						List<String> ids = new Vector<String>();
+						String path = page.getPath();
+						String title = page.getTitle();
+						title = title.replace("'", "");
+						String fuzzyQuery = "select id from page_registry where path='"+path+"' and title like '"+title+"%'";
+						try(Statement stmt = connector.createStatement())  {		
+							ResultSet rs = stmt.executeQuery(fuzzyQuery);
+							rs.beforeFirst();
+							
+							// Extract data from result set
+							while (rs.next()) {
+								// Retrieve by column name
+								String id = rs.getString("id");
+								ids.add(id);
+							}
+						}
+						catch (SQLException sql) {
+							//	Swallow the exception or recursion will halt.
+							System.out.println(sql.getMessage()+" - "+sql.getCause());
+						}
+						
+						// Report how we did.
+						if (ids.size() == 0) {
+							//	No match, no joy.
+							return;
+						}
+						else if (ids.size() == 1) {
+							//	Single match, yes!
+							String newId = ids.get(0);
+							
+							//	Check that the new id matches the page Id in the metadata.
+							if (newId.compareTo(page.getId()) == 0) {
+								String name = file.getName();
+								String newTitle = this.fileNameToTitle(name);
+								
+								//System.out.println("["+title+"] ==> ["+newTitle+"] -- ["+file.getName()+"] -- "+newId);
+								System.out.println(page.getUpdateQuery());
+								
+								//	Fix things up.
+								//  updatePage(String id, String site, String title, String file, String path)
+								FixInPlace.registry.updatePage(newId, page.getSite(), newTitle, name, page.getPath());
+								Util.updateHeaderInfo(content, fullFileName, meta);
+								Util.saveFile(content, fullFileName);
+								
+								this.fileCt++;
+							}
+						}
+						else {
+							// System.out.println("Found "+ids.size()+" matches on title of "+title);
+						}
+					}
+				}
+			}
+			catch (PageException pg) {
+				System.out.println (pg.getMessage() + " skiping file: "+fullFileName);
+			}
+		}
+	}
+
 	
 	/****************************************************************************
 	 *		FIX METHODS	
@@ -264,21 +400,18 @@ public class FixInPlace {
 	 * 
 	 * This is done by extracting the title, page, and PID and regenerating the HEAD block
 	 * 
-	 * @param content
+	 * 01/15/2024: Refactored to take a file name and call getHeaderInfo(filename).
+	 * 
+	 * @param filename
+	 * @param pagename
 	 * @return repaired content
 	 * @throws FixException if HEADER is not found, which implies an already fixed file.
+	 * @throws PageException 
 	 */
-	public String fixHeader1(String content, String pageName) throws FixException{
-		int endHeaderIndex = content.indexOf("</header>");
-		if (endHeaderIndex == -1) {
-			throw new FixException("Unable to find the closing HEADER element on page:"+pageName);
-		}
-		
-		//	Extract the header block and get page information.
-		String headerBlock = content.substring(0, endHeaderIndex);
-		PageInfo info = this.getHeaderInfo(headerBlock);
-		
-		
+	public String fixHeader1(String filename, String pageName) throws FixException, PageException{
+		PageInfo info = this.getHeaderInfo(filename);
+		String content = Util.loadFile(filename);
+				
 		//System.out.println("Title: "+title);
 		//System.out.println("Name: "+name);
 		//System.out.println("PID: "+pid);
@@ -292,8 +425,6 @@ public class FixInPlace {
 				StringBuffer newTitle = new StringBuffer();
 				String[] parts = info.title.split(" ");
 				
-				
-
 				for (String part : parts) {
 					String caps = part.toUpperCase();
 					if (part.length()>0)
@@ -354,20 +485,19 @@ public class FixInPlace {
 	 * 	-	Change style sheet link to http://localhost:8080/nolaria/green.css
 	 * 	-	Add meta tags to prevent caching of page.
 	 * 
-	 * @param content of this web page
+	 * 01/15/2024: Refactored to take a file name and call getHeaderInfo(filename).
+	 * 
+	 * @param filename of this web page
 	 * @param pageName - file name with no path
+	 * 
 	 * @return repaired content
 	 * @throws FixException if HEAD is not found, which implies an already fixed file.
+	 * @throws PageException 
 	 */
-	public String fixHeader2(String content, String pageName) throws FixException{
-		int endHeaderIndex = content.indexOf("</head>");
-		if (endHeaderIndex == -1) {
-			throw new FixException("Unable to find the closing HEAD element on page:"+pageName);
-		}
-		
-		//	Extract the header block and get page information.
-		String headerBlock = content.substring(0, endHeaderIndex);
-		PageInfo info = this.getHeaderInfo(headerBlock);
+	public String fixHeader2(String filename, String pageName) throws FixException, PageException{
+		PageInfo info = this.getHeaderInfo(filename);
+		String content = Util.loadFile(filename);
+
 		
 		//System.out.println("Title: "+info.title);
 		//System.out.println("Name: "+info.name);
@@ -415,7 +545,7 @@ public class FixInPlace {
 		String classBug = "0";
 		
 		//	Load the contents of the file to analyze.
-		String content = this.loadFile(filePath);
+		String content = Util.loadFile(filePath);
 		if (content == null) {
 			System.out.println("Unable to load file: "+filePath);
 			return;
@@ -463,7 +593,7 @@ public class FixInPlace {
 		
 		String filePath = file.getPath();
 
-		String content = this.loadFile(filePath);
+		String content = Util.loadFile(filePath);
 		if (content == null) {
 			// System.out.println("Unable to load file: "+filePath);
 			return;
@@ -547,7 +677,7 @@ public class FixInPlace {
 		*/
 		
 		//	Parse the HTML document.
-		String htmlStr = this.loadFile(testInputFile);
+		String htmlStr = Util.loadFile(testInputFile);
 		org.jsoup.parser.Parser parser = org.jsoup.parser.Parser.htmlParser();
 		Document doc = parser.parseInput(htmlStr, "file:///D:/Personal/SiteView/people.html");
 		String baseUri = doc.baseUri();
@@ -563,9 +693,62 @@ public class FixInPlace {
 			String linkUrl = link.attr("abs:href");
 			System.out.println("\t"+linkUrl);
 			
-			PageRegistry registry =new PageRegistry();
 			//PageId pg = registry.getPageByFileName();
 		}
+	}
+	
+	/**
+	 * On Jan. 15, 2024 I did a silly thing.  I set every file name to oka-03.html.
+	 * This method attempts to undo that damage by attempting to extract the file name from the page title
+	 * and restoring it in the database.
+	 */
+	public void fixFileNamesByRecords() throws PageException {		
+		List<PageId> pages = registry.getAllPages();
+		
+		System.out.println("Starting restoration of file names in "+pages.size()+" records.\n");
+		
+		//	Iterate over all pages and look for ones that we can't make file names for.
+		int broken = 0;
+		int fixed = 0;
+		for (PageId page : pages) {
+			if (page.getFile().compareTo("oka-03.html") == 0 ) {
+				String fixedTitle = this.titleToFileName(page.getTitle());
+				String fileName = fixedTitle+".html";
+				String fullFileName = rootFolder+"/"+page.getPath()+"/"+fileName;
+				File f = new File(fullFileName);
+				if (f.exists()) {
+					// String id, String site, String title, String file, String path
+					registry.updatePage(page.getId(), page.getSite(), page.getTitle(), fileName, page.getPath());
+					fixed++;
+				}
+				else {
+					//System.out.println(page.getTitle()+" => "+fileName);
+					//System.out.println(page.getTitle()+" => "+fullFileName);
+					//System.out.println(fullFileName);
+					broken++;
+				}
+			}
+		}
+		System.out.println("\nFixable: "+fixed+" Broken: "+broken);	
+	}
+	
+	/**
+	 * This tries to fix the records that fixFileNamesByRecords() couldn't.
+	 * This one works by walking the entire file tree.  Each file is opened and the PageInfo is extracted.
+	 * Using the PID found, that record is retrieved and updated with the name of the current page file.
+	 * 
+	 * @throws PageException 
+	 * 
+	 */
+	public void fixFileNamesByFileInfo() throws PageException {
+		System.out.println("Starting restoration of file names using file metadata.\n");
+		
+		connector = RegistryConnector.getConnector();
+
+		File rootFile = new File(rootFolder);
+		this.fileCt = 0;
+		this.recursiveFileNameFixer(0, rootFile);
+		System.out.println("Pages that can be fixed using fuzzy match: "+this.fileCt);
 	}
 	
 	
@@ -574,38 +757,130 @@ public class FixInPlace {
 	 ****************************************************************************/
 
 	/**
-	 * This utility method takes the header block of content and extracts key page data including:
+	 * @deprecated
+	 * This utility method takes the file name of a page file, loads its contents and
+	 * extracts header metadata including:
 	 * 
 	 * 	-	Title
 	 * 	-	Name
 	 * 	-	PID (page identifier)
 	 * 
+	 * 01/15/2024: Refactored to take a file name.
+	 *
 	 * @param headerBlock
-	 * @return PageInfo object
+	 * @return PageInfo object or full if an error happened.
 	 */
-	public PageInfo getHeaderInfo(String headerBlock) {
+	public PageInfo getHeaderInfo(String filename) {
 		String title = null;	//	The page title.
 		String name = null;		//	The page name.
 		String pid = null;		//	The page identifier (UUID).
+		
+		if (filename == null) {
+			System.out.println("getHeaderInfo: filename passed is null.");
+			return null;
+		}
+		
+		//	Load the file contents.
+		String headerBlock = Util.loadFile(filename);
 				
 		//  Extract the title.
 		int startTitleOffset = headerBlock.indexOf("<title>");
+		if (startTitleOffset == -1) {
+			System.out.println("getHeaderInfo: start of title not found.");
+			return null;
+		}
 		int endTitleOffset = headerBlock.indexOf("</title>", startTitleOffset+1);
+		if (endTitleOffset == -1) {
+			System.out.println("getHeaderInfo: end of title not found.");
+			return null;			
+		}
 		title = headerBlock.substring(startTitleOffset+"<title>".length(), endTitleOffset);
 		
 		//	Extract the name.
 		String nameStart = "name=\"name\" content=\"";
 		int startNameOffset = headerBlock.indexOf(nameStart);
+		if (startNameOffset == -1) {
+			System.out.println("getHeaderInfo: start of name not found.");
+			return null;
+		}
 		int endNameOffset = headerBlock.indexOf("\"", startNameOffset+nameStart.length());
+		if (endNameOffset == -1) {
+			System.out.println("getHeaderInfo: end of name not found.");
+			return null;			
+		}
 		name = headerBlock.substring(startNameOffset+nameStart.length(), endNameOffset);
 		
 		//	Extract the page identifier.
 		String idStart = "name=\"pid\" content=\"";
 		int startPidOffset = headerBlock.indexOf(idStart);
+		if (startPidOffset == -1) {
+			System.out.println("getHeaderInfo: start of pid not found.");
+			return null;
+		}
 		int endPidOffset = headerBlock.indexOf("\"", startPidOffset+idStart.length());
+		if (endPidOffset == -1) {
+			System.out.println("getHeaderInfo: end of pid not found.");
+			return null;			
+		}
 		pid = headerBlock.substring(startPidOffset+idStart.length(), endPidOffset);
 		
 		return new PageInfo(title,name,pid);		
+	}
+	
+	/**
+	 * Convert the page title passed to a file name by:
+	 * 1.  Converting text to lower case
+	 * 2.  Converting spaces to dash.
+	 * 
+	 * @param title
+	 * @return file
+	 */
+	public String titleToFileName(String title) {
+		String file = title.toLowerCase();
+		file = file.replace(' ', '-');
+		file = file.replace('/', '-');
+		file = file.replace('.', '+');
+		file = file.replace(",", "");
+		file = file.replace("'", "-");
+		file = file.replace("+", "");
+		file = file.replace("_", "");
+		file = file.replace(':', '-');
+		file = file.replace("&amp;", "-");
+		return file;
+	}
+	
+	/**
+	 * This method creates a page title given a file name.  For the most part, this is used
+	 * to correct the truncated titles that happened in an earlier phase of conversion.  It
+	 * does this in two steps:
+	 * 
+	 * 	1. Remove the file extension (usually .html)
+	 *  2. Replace --- with -
+	 *  3. Use the Util.captizalize() method for final title.
+	 *  
+	 *  "00---things-to-do.html" becomes "00 - Things To Do"
+	 *      but
+	 *  "city-02.html" becomes "City 02"
+	 *      can't be helped because dash means two things: a dash or a space.
+	 * 
+	 * @param fileName
+	 * @return Extracted title
+	 */
+	public String fileNameToTitle(String fileName) {
+		int off = fileName.indexOf('.');
+		String title = fileName.substring(0, off);
+		title = title.replace("---", " + ");	//  Stub the three dash case.
+		title = title.replace('-',' ');			//	All dashes to spaces
+		title = title.replace('+', '-');		//	Restore the three dash case.
+		
+		//	Capitalize the first letter.
+		char firstLetter = title.charAt(0);
+		char firstCapitalized = Character.toUpperCase(firstLetter);
+		title = firstCapitalized + title.substring(1, title.length());
+		
+		title = Util.capitalize(title);
+		
+		return title;
 	}
 	
 	/**
@@ -614,12 +889,13 @@ public class FixInPlace {
 	 * @param fileName
 	 * @return contents of the file
 	 */
+	/*  DEPRECATED - use FixInPlace.util.loadFile() instead.
 	public String loadFile (String fileName) {
 		String content = null;
 		File srcFile = new File (fileName);
 		BufferedReader br = null;
 		
-		/* Load source file into memory.  */
+		// Load source file into memory.
 		try {
 			br = new BufferedReader(new FileReader(srcFile));
 
@@ -650,6 +926,7 @@ public class FixInPlace {
 
 		return content;
 	}
+*/
 	
 	/**
 	 * Save the contents passed to the file named.
@@ -657,6 +934,7 @@ public class FixInPlace {
 	 * @param contents
 	 * @param fileName
 	 */
+	/*  DEPRECATED - use FixInPlace.util.saveFile() instead.
 	public void saveFile (String contents, String fileName) {
 		FileOutputStream out = null;
 		try {
@@ -682,6 +960,7 @@ public class FixInPlace {
 			}
 		}		
 	}
+	*/
 	
 	/**
 	 * Return a string with a set of tabs equal to the depth passed.

@@ -3,6 +3,7 @@
  */
 package com.nolaria.sv.db;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -90,6 +91,49 @@ public class Util {
 	}
 
 	/**
+	 * Load the file given by fileName and return it as a String.
+	 * 
+	 * @param fileName
+	 * @return contents of the file
+	 */
+	public static String loadFile (String fileName) {
+		String content = null;
+		File srcFile = new File (fileName);
+		BufferedReader br = null;
+		
+		/* Load source file into memory.  */
+		try {
+			br = new BufferedReader(new FileReader(srcFile));
+
+			StringBuilder sb = new StringBuilder();
+		    String line = br.readLine();
+
+		    while (line != null) {
+		        sb.append(line);
+		        sb.append(System.lineSeparator());
+		        line = br.readLine();
+		    }
+		    content = sb.toString();
+		}
+		catch (IOException io) {
+			System.out.println ("Exception when loading file: "+fileName);
+			System.out.println (io.getMessage());
+			System.out.println (io.getCause());
+		}
+		finally {
+			try {
+				if (br != null)
+					br.close();
+			}
+			catch (IOException close) {
+				System.out.println ("Error on closing file: "+fileName);
+			}
+		}
+
+		return content;
+	}
+	
+	/**
 	 * Save the contents passed to the file named.
 	 * 
 	 * @param contents
@@ -159,6 +203,43 @@ public class Util {
 			pid = pgContent.substring(startPidOffset+idStart.length(), endPidOffset);
 		
 		return new PageInfo(title,name,pid);	
+	}
+	
+	/**
+	 * Generate a new header section with the page information passed and update the content provided.
+	 * 
+	 * @param content - Current web page content
+	 * @param cssFileName - CSS file name to be included in the header.
+	 * @param pageInfo - Page title, name, and pid.
+	 * 
+	 * @return updated page content
+	 */
+	public static String updateHeaderInfo(String content, String cssFileName, PageInfo pageInfo) {
+		//	Create fixed header block.
+		StringBuffer fixedHeader = new StringBuffer();
+		fixedHeader.append("<!DOCTYPE html>\n");
+		fixedHeader.append("<html lang=\"en-us\">\n");
+		fixedHeader.append("<head>\n");
+		fixedHeader.append("\t<link rel=\"stylesheet\" href=\""+cssFileName+"\">\n");	//	Green is the nolaria theme.
+		fixedHeader.append("\t<title>"+pageInfo.title+"</title>\n");
+		fixedHeader.append("\t<meta name=\"title\" content=\""+pageInfo.title+"\" />\n");
+		fixedHeader.append("\t<meta name=\"name\" content=\""+pageInfo.name+"\" />\n");
+		fixedHeader.append("\t<meta name=\"pid\" content=\""+pageInfo.pid+"\" />\n");
+
+		fixedHeader.append("\t<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n");
+		fixedHeader.append("\t<meta http-equiv=\"Pragma\" content=\"no-cache\" />\n");
+		fixedHeader.append("\t<meta http-equiv=\"Expires\" content=\"0\" />\n");
+
+		fixedHeader.append("</head>\n");
+		
+		// System.out.println("\n"+fixedHeader.toString());
+		
+		String contentRemainder = null;
+		int startOff = content.indexOf("<body>");
+		
+		contentRemainder = content.substring(startOff, content.length());
+						
+		return fixedHeader+contentRemainder;
 	}
 
 	/**
