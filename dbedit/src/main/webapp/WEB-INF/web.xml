@@ -1,0 +1,31 @@
+<!DOCTYPE web-app PUBLIC
+ "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+ "http://java.sun.com/dtd/web-app_2_3.dtd" >
+
+<web-app>
+	<display-name>Archetype Created Web Application</display-name>
+<!-- 
+	<servlet>
+		<servlet-name>Viewer</servlet-name>
+		<servlet-class>com.nolaria.sv.Viewer</servlet-class>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+
+	<servlet>
+		<servlet-name>Editor</servlet-name>
+		<servlet-class>com.nolaria.sv.Editor</servlet-class>
+		<load-on-startup>2</load-on-startup>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>Viewer</servlet-name>
+		<url-pattern>/sv/viewer</url-pattern>
+	</servlet-mapping>
+
+	<servlet-mapping>
+		<servlet-name>Editor</servlet-name>
+		<url-pattern>/sv/editor</url-pattern>
+	</servlet-mapping>
+
+ -->
+</web-app>

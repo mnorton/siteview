@@ -48,6 +48,11 @@ public class FixInPlace {
 	//  Analysis files.
 	public static String bugDataFile = "C:/Users/markj/Documents/Personal/SiteViewer/bug-data.csv";
 	
+	//	Fix codes are used by the generic recursivefileNameFix() tree walker to identify which fix to apply.
+	//  FUZZY_EXACT: Single hit on title match.
+	//  FUZZY_FIRST: Multiple hits on title match, first one is used.
+	public static enum Fix_Code {FUZZY_EXACT, FUZZY_FIRST};
+	
 	//  CSS file to use when generating a header.
 	public static String cssGreen = "http://localhost:8080/nolaria/green.css";
 	public static String cssBlue = "http://localhost:8080/nolaria/blue.css";
@@ -67,6 +72,8 @@ public class FixInPlace {
 	 */
 	public static void main(String[] args) {
 		try {
+			connector = RegistryConnector.getConnector();	//	Initialize a DB connector for general use.
+			
 			//app.fixOneFile(testInputFile, testOutputFile);	//	Just fix the specified file - used for testing.
 			//app.fixAllFiles(rootFolder, testOutputFile);	//	Fix all files starting at the root specified and save to test file.
 			//app.fixAllFiles(rootFolder, null);			//	Fix all files starting at the root specified and save to real file.
@@ -85,7 +92,11 @@ public class FixInPlace {
 			
 			//	Fix all records to restore their file names.  - 1/15/2024
 			//app.fixFileNamesByRecords();
-			app.fixFileNamesByFileInfo();
+			
+			//	These fixes are for the oka-03.html database disaster.
+			//app.fixFileNamesByFileInfo(root);
+			app.fixRecordsUsingFuzzyMatch(Fix_Code.FUZZY_EXACT);
+			//app.fixRecordsUsingFuzzyMatch(Fix_Code.FUZZY_FIRST);
 		}
 		catch (Exception ex) {
 			ex.printStackTrace();
@@ -275,107 +286,34 @@ public class FixInPlace {
 	 * @param depth
 	 * @param file
 	 */
-	public void recursiveFileNameFixer (int depth, File file) {
+	public void recursiveFileNameFixer (int depth, FixInPlace.Fix_Code fixCode, File file) {
 		//System.out.println("File to scan:  "+file.getPath());
 		
-		//	Check for media folder.
+		//	Check for folders (media) or files (*.css) to skip.
 		String fn = file.getName();
 		if (fn.compareTo("media") == 0)
 			return;
 		//	Check for a css file.
 		if (fn.indexOf(".css") != -1)
 			return;
-
 		
 		//	If this is a directory, recurse to lower level.
 		if (file.isDirectory()) {
 			File[] files = file.listFiles();
 			for (File newFile : files) {
-				this.recursiveFileNameFixer(depth+1, newFile);
+				this.recursiveFileNameFixer(depth+1, fixCode, newFile);
+				
 			}
 		}
 		
-		//	Otherwise, collect statistics on this file.
+		//	Otherwise, see if this file needs fixing and fix it.
 		else {
-			String fullFileName = file.getAbsolutePath();
-			try {
-				String content = Util.loadFile(fullFileName);
-				PageInfo meta = Util.getHeaderInfo(content);
-				if (meta == null) {
-					System.out.println("Unable to extract file info for: "+fullFileName);
-					return;
-				}
-				else {
-					PageId page = registry.getPage(meta.pid);
-					if (page == null)
-						return;
-					
-					//	See if this is one of the broken ones.
-					if (page.getFile().compareTo("oka-03.html") == 0) {
-						
-						/*	This was used to pull data on a random problem page.
-						if (this.fileCt == 20) {
-							System.out.println("File no. "+fileCt+" has a name of: "+fullFileName);
-							System.out.println("File metadata: "+meta.toString());
-							System.out.println("Page record: "+page.toString());
-						}
-						*/
-
-						List<String> ids = new Vector<String>();
-						String path = page.getPath();
-						String title = page.getTitle();
-						title = title.replace("'", "");
-						String fuzzyQuery = "select id from page_registry where path='"+path+"' and title like '"+title+"%'";
-						try(Statement stmt = connector.createStatement())  {		
-							ResultSet rs = stmt.executeQuery(fuzzyQuery);
-							rs.beforeFirst();
-							
-							// Extract data from result set
-							while (rs.next()) {
-								// Retrieve by column name
-								String id = rs.getString("id");
-								ids.add(id);
-							}
-						}
-						catch (SQLException sql) {
-							//	Swallow the exception or recursion will halt.
-							System.out.println(sql.getMessage()+" - "+sql.getCause());
-						}
-						
-						// Report how we did.
-						if (ids.size() == 0) {
-							//	No match, no joy.
-							return;
-						}
-						else if (ids.size() == 1) {
-							//	Single match, yes!
-							String newId = ids.get(0);
-							
-							//	Check that the new id matches the page Id in the metadata.
-							if (newId.compareTo(page.getId()) == 0) {
-								String name = file.getName();
-								String newTitle = this.fileNameToTitle(name);
-								
-								//System.out.println("["+title+"] ==> ["+newTitle+"] -- ["+file.getName()+"] -- "+newId);
-								System.out.println(page.getUpdateQuery());
-								
-								//	Fix things up.
-								//  updatePage(String id, String site, String title, String file, String path)
-								FixInPlace.registry.updatePage(newId, page.getSite(), newTitle, name, page.getPath());
-								Util.updateHeaderInfo(content, fullFileName, meta);
-								Util.saveFile(content, fullFileName);
-								
-								this.fileCt++;
-							}
-						}
-						else {
-							// System.out.println("Found "+ids.size()+" matches on title of "+title);
-						}
-					}
-				}
-			}
-			catch (PageException pg) {
-				System.out.println (pg.getMessage() + " skiping file: "+fullFileName);
+			switch (fixCode) {
+			case FUZZY_EXACT:	//	Single hit on fuzzy match to title.
+				this.fixIfFuzzyExact(file);
+			case FUZZY_FIRST:	//	Multiple hits on fuzzy match to titles, use the first.
+			default:
+				System.out.println("No fix applied to: "+fn);
 			}
 		}
 	}
@@ -733,24 +671,119 @@ public class FixInPlace {
 	}
 	
 	/**
-	 * This tries to fix the records that fixFileNamesByRecords() couldn't.
-	 * This one works by walking the entire file tree.  Each file is opened and the PageInfo is extracted.
-	 * Using the PID found, that record is retrieved and updated with the name of the current page file.
+	 * Walk the entire file tree.  Each file is opened and the PageInfo is extracted.
+	 * A filter/fix is performed based on the fix code passed.
 	 * 
-	 * @throws PageException 
-	 * 
+	 * @param fixCode
+	 * @param file
 	 */
-	public void fixFileNamesByFileInfo() throws PageException {
+	public void fixRecordsUsingFuzzyMatch(Fix_Code fixCode) {
 		System.out.println("Starting restoration of file names using file metadata.\n");
 		
-		connector = RegistryConnector.getConnector();
-
 		File rootFile = new File(rootFolder);
 		this.fileCt = 0;
-		this.recursiveFileNameFixer(0, rootFile);
+		this.recursiveFileNameFixer(0, fixCode, rootFile);
 		System.out.println("Pages that can be fixed using fuzzy match: "+this.fileCt);
 	}
 	
+	/**
+	 * This is one of the fixes called from recursiveFileNameFixer() which walks the file tree and attempts to apply fixes
+	 * based on a fixCode.
+	 * 
+	 * Using the file passed, get its metadata from the file contents.
+	 * Do a fuzzy (wild card) query using a title extracted from the file name against it's current title.
+	 * If there is only a single hit, update the record 
+	 * 
+	 */
+	public void fixIfFuzzyExact(File file) {
+		String fullFileName = file.getAbsolutePath();
+		try {
+			String content = Util.loadFile(fullFileName);
+			PageInfo meta = Util.getHeaderInfo(content);
+			if (meta == null) {
+				System.out.println("Unable to extract file info for: "+fullFileName);
+				return;
+			}
+			else {
+				PageId page = registry.getPage(meta.pid);
+				if (page == null)
+					return;
+				
+				//	See if this is one of the broken ones.
+				if (page.getFile().compareTo("oka-03.html") == 0) {						
+					List<String> ids = new Vector<String>();
+					String path = page.getPath();
+					String title = page.getTitle();
+					title = title.replace("'", "");
+					String fuzzyQuery = "select id from page_registry where path='"+path+"' and title like '"+title+"%'";
+					try(Statement stmt = connector.createStatement())  {		
+						ResultSet rs = stmt.executeQuery(fuzzyQuery);
+						rs.beforeFirst();
+						
+						// Extract data from result set
+						while (rs.next()) {
+							// Retrieve by column name
+							String id = rs.getString("id");
+							ids.add(id);
+						}
+					}
+					catch (SQLException sql) {
+						//	Swallow the exception or recursion will halt.
+						System.out.println(sql.getMessage()+" - "+sql.getCause());
+					}
+					
+					// Report how we did.
+					if (ids.size() == 0) {
+						//	No match, no joy.
+						return;
+					}
+					else if (ids.size() == 1) {
+						//	Single match, yes!
+						String newId = ids.get(0);
+						
+						//	Check that the new id matches the page Id in the metadata.
+						if (newId.compareTo(page.getId()) == 0) {
+							String name = file.getName();
+							String newTitle = this.fileNameToTitle(name);
+							
+							//System.out.println("["+title+"] ==> ["+newTitle+"] -- ["+file.getName()+"] -- "+newId);
+							System.out.println(page.getUpdateQuery());
+							
+							//	Fix things up.
+							//  updatePage(String id, String site, String title, String file, String path)
+							/*
+							FixInPlace.registry.updatePage(newId, page.getSite(), newTitle, name, page.getPath());
+							Util.updateHeaderInfo(content, fullFileName, meta);
+							Util.saveFile(content, fullFileName);
+							*/
+							
+							this.fileCt++;
+						}
+					}
+					else {
+						// System.out.println("Found "+ids.size()+" matches on title of "+title);
+					}
+				}
+			}
+		}
+		catch (PageException pg) {
+			System.out.println (pg.getMessage() + " skiping file: "+fullFileName);
+		}
+	}
+
+	/**
+	 * This is one of the fixes called from recursiveFileNameFixer() which walks the file tree and attempts to apply fixes
+	 * based on a fixCode.
+	 * 
+	 * Using the file passed, get its metadata from the file contents.
+	 * Do a fuzzy (wild card) query using a title extracted from the file name against it's current title.
+	 * If there multiple hits, use the first one found to update the record 
+	 * 
+	 */
+	public void fixIfFuzzyFirst(File file) {
+		//	To be imlemented.
+	}
+
 	
 	/****************************************************************************
 	 *		UTILITY METHODS	

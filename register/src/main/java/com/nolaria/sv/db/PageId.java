@@ -56,10 +56,10 @@ public class PageId implements Comparable<PageId> {
 	 * @param path
 	 * @param archive
 	 */
-	public PageId (String id, String site, String name, String file, String path, boolean archived) {
+	public PageId (String id, String site, String title, String file, String path, boolean archived) {
 		this.id = id;			//	A UUID for the page.
 		this.site = site;		//	Web site associated with this page.
-		this.title = name;		//	Web page title.
+		this.title = title;		//	Web page title.
 		this.file = file;		//	File name.
 		this.path = path;		//	Path to file name relative to Tomcat webapps dir.
 		this.archived = archived;	//	True if archived.
@@ -299,7 +299,7 @@ public class PageId implements Comparable<PageId> {
 	}
 
 	/**
-	 * Create a description string for this page and return it.
+	 * Create an in-line description string for this page and return it.
 	 * returns description string.
 	 */
 	public String toString() {
@@ -315,7 +315,25 @@ public class PageId implements Comparable<PageId> {
 		
 		return sb.toString();
 	}
-	
+
+	/**
+	 * Create formatted description string for this page and return it.
+	 * returns description string.
+	 */
+	public String toStringPretty() {
+		StringBuffer sb = new StringBuffer();
+		
+		sb.append("PageId Values:\n");
+		sb.append("\tid: "+this.id+"\n");
+		sb.append("\tsite: "+this.site+"\n");
+		sb.append("\ttitle: "+this.title+"\n");
+		sb.append("\tpath: "+this.path+"\n");
+		sb.append("\tfile: "+this.file+"\n");
+		sb.append("\tarchived: "+this.archived+"\n");
+		
+		return sb.toString();
+	}
+
 	/**
 	 * Recursive HTML document scanner.
 	 * 
