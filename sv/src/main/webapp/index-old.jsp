@@ -1,5 +1,5 @@
 <html>
-<header>
+<head>
 	<%@page import="com.nolaria.sv.PageFramework"%>
 	<%
 	   String ref = request.getParameter("ref");
@@ -22,7 +22,7 @@
 	<meta name="name" content="<%= name %>" />
 	
 
-</header>
+</head>
 <body>
 
 <div id="banner" style="width: 100%; height: 160px; border-style: solid; border-width: 1px; padding: 20px; background-color:#709d3e">
@@ -43,9 +43,7 @@
 </div>
 
 <div id="footer" style="height: 40px; width: 100%; border-style: solid; border-width: 1px; padding:20px; background-color:#709d3e">
-	<center>
-		© 2021 Mark J. Norton, All Rights Reserved<br>
-	</center>
+		<span style="text-align: center"> © 2021 Mark J. Norton, All Rights Reserved<br></span>
 </div>
 
 </body>

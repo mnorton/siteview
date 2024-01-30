@@ -187,6 +187,24 @@ public class PageId implements Comparable<PageId> {
 	}
 	
 	/**
+	 * Get the content body of this page.
+	 * 
+	 * @return body content or the whole page content if tags cannot be found.
+	 */
+	public String getContentBody() {
+		String fileName = this.getFullFileName();
+		System.out.println("File name of page contents: "+fileName);
+		
+		String content = Util.loadFile(fileName);
+		if (content == null)
+			return "<b>Unable to load page contents</b>";
+		
+		String bodyContent = Util.getBodyContent(content);
+		
+		return bodyContent;
+	}
+	
+	/**
 	 * This utility method returns a SQL query to update this PageId object.
 	 * The main purpose of this is to create a way to restore previous values of a PageId object after it has been modified (updated).
 	 * 

@@ -17,6 +17,7 @@ import com.nolaria.sv.db.*;
 public class PageRegistryTest {
 	private static int PAGE_CT = 5;
 	private static final String BOOKS_ID = "654b7d10-a431-4cec-9d1d-4262209c9b56";
+	private static final String YONTICA_ID = "f62b9661-d11e-4bed-b674-d04643bd7cdb";
 	private SiteRegistry siteRegistery = new SiteRegistry();
 	private PageRegistry pageRegistry = new PageRegistry();
 	
@@ -36,7 +37,7 @@ public class PageRegistryTest {
 	public static void main(String[] args)  {
 		PageRegistryTest test = new PageRegistryTest();
 		
-		Boolean doUtilTests = true;
+		Boolean doUtilTests = false;
 		Boolean doSiteTests = false;
 		Boolean doRegistryTests = false;
 		
@@ -60,6 +61,8 @@ public class PageRegistryTest {
 			test.testSoftDeletePage();
 			test.testHardDeletePage();
 		}
+		
+		test.testGetBodyContent();
 	}
 	
 	/***********************************************************
@@ -374,4 +377,37 @@ public class PageRegistryTest {
 
 		return true;
 	}
+	
+	/**
+	 * Get the body content for this page.
+	 * 
+	 * @return true if able to get the content.
+	 */
+	public boolean testGetBodyContent() {
+		try {
+			//	Get all of the content
+			PageId yonticaPage = this.pageRegistry.getPage(YONTICA_ID);
+			if (yonticaPage == null) {
+				System.out.println ("Unable to get page: "+YONTICA_ID);
+				return false;
+			}
+			
+			//	Extract just the body content
+			String bodyContent = yonticaPage.getContentBody();
+			if (bodyContent == null) {
+				System.out.println ("Unable to body content for : "+yonticaPage.getTitle());
+				return false;
+			}
+			
+			//	Success!  Show the content.
+			System.out.println(yonticaPage.toStringPretty());
+			System.out.println(bodyContent);
+		}
+		catch (PageException pg) {
+			pg.printStackTrace();
+			return false;
+		}
+		return true;
+	}
+			
 }

@@ -8,13 +8,12 @@ import org.junit.jupiter.api.Test;
 import com.nolaria.sv.db.PageRegistry;
 
 public class TestPageRegistry {
-	private PageRegistry registry = null;
 	
 	@Test
 	public void getPageRegistryTest() {
-		this.registry = new PageRegistry();
-		System.out.println("PageRegistryTest.getPageRegistryTest()");
-		assertTrue(true);
+		PageRegistry registry = new PageRegistry();
+		System.out.println(registry.toString());
+		assertTrue(registry != null);
 		//assert this.registry != null;
 	}
 	

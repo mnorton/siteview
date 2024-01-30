@@ -38,9 +38,7 @@
 </div>
 
 <div id="footer" style="height: 40px; width: 100%; border-style: solid; border-width: 1px; padding:20px; background-color:#709d3e">
-	<center>
-		© 2023 Mark J. Norton, All Rights Reserved<br>
-	</center>
+	<span style="text-align: center"> © 2021 Mark J. Norton, All Rights Reserved<br></span>
 </div>
 
 </body>

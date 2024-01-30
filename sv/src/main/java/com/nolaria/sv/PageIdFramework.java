@@ -46,7 +46,7 @@ public class PageIdFramework {
 	//	Site and page information.
 	public String siteName = null;
 	public Site site = null;
-	public String pageId = null;
+	public String identifier = null;
 	public PageId page = null;
 	
 	//	Search parameters
@@ -61,6 +61,8 @@ public class PageIdFramework {
 	 * This class relies on a local database called site_view running an accessible with 
 	 * previously established credentials.
 	 * 
+	 * Refactored to rename this.pageId to this.identifier.  It avoids type ahead problems. - Jan. 30, 2024
+	 * 
 	 * @param req
 	 */
 	public PageIdFramework (HttpServletRequest req) throws Exception {
@@ -72,12 +74,12 @@ public class PageIdFramework {
 			this.siteName = DEFAULT_SITE;
 		
 		//	Extract the page id parameter.  Show error if none provided.
-		this.pageId = (String)request.getParameter("id");
-		if (this.pageId == null)
+		this.identifier = (String)request.getParameter("id");
+		if (this.identifier == null)
 			this.error ="A page identifier was not provided.";
 				
 		System.out.println("\n============================ Site Viewer =============================\n");
-		System.out.println ("Page request for: "+this.siteName+" - "+this.pageId+"\n");
+		System.out.println ("Page request for: "+this.siteName+" - "+this.identifier+"\n");
 		
 		//	Get the Site object.
 		this.site = siteRegistry.getSiteByName(this.siteName);
@@ -89,11 +91,11 @@ public class PageIdFramework {
 			System.out.println ("Site: "+site.toString());
 		
 		//	Get the PageId object.
-		this.page = pageRegistry.getPage(this.pageId);
+		this.page = pageRegistry.getPage(this.identifier);
 		if (this.page == null) {
 			//	This can happen by manually entering a URL with an invalid page ID.
-			System.out.println("Page not found for:  "+this.pageId);
-			this.error = "Page not found for: "+this.pageId;
+			System.out.println("Page not found for:  "+this.identifier);
+			this.error = "Page not found for: "+this.identifier;
 			return;
 		}
 		else
@@ -250,7 +252,8 @@ public class PageIdFramework {
 	public String getContent() {
 		if (this.page == null)
 			return "<h1>Page object is null</h1>\n";
-		return this.page.getIFrame();
+		return this.page.getIFrame();			//	IFrame approach
+		//return this.page.getContentBody();	//	Embedded body content appraoch.
 	}
 	
 	/**

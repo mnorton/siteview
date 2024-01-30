@@ -234,6 +234,28 @@ public class Util {
 	}
 	
 	/**
+	 * Return the content of this page between the <BODY> and </BODY> Tags.
+	 * 
+	 * @param pgContent
+	 * @return body content or the whole page content if tags cannot be found.
+	 */
+	public static String getBodyContent(String pgContent) {
+		int bodyStart = pgContent.indexOf("<body>");
+		bodyStart += "<body>".length();
+		int bodyEnd = pgContent.indexOf("</body>");
+		
+		//	If we don't find the start or end of the body, return the whole content.
+		if ((bodyStart == -1) || (bodyEnd == -1)) {
+			return pgContent;
+		}
+		
+		//	Extract the body content.
+		String bodyContent = pgContent.substring(bodyStart, bodyEnd);
+		
+		return bodyContent;
+	}
+	
+	/**
 	 * Generate a new header section with the page information passed and update the content provided.
 	 * 
 	 * Note:  For backwards compatibility, the metadata are retained as follows:
