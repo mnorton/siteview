@@ -49,9 +49,23 @@ public class Util {
 	public static String extractRelativePath (String path) {
 		return path.substring(FILE_ROOT.length());
 	}
+	
+	/**
+	 * Return true if the file name exists.
+	 * This is a convenience method for use in test scripts.
+	 * 
+	 * @param filename
+	 * @return true if the file name exists.
+	 */
+	public static Boolean fileExists (String filename) {
+		File f = new File(filename);
+		return f.exists();
+	}
 
 	/**
 	 * Get the contents of a referenced file and return it.
+	 * The reference is based on the FILE_ROOT, so a full file name doesn't need to be passed in.
+	 * Currently, only PageRegistry.registerPage() uses this.
 	 * 
 	 * @param reference to a file in the web repo including relative path, "first/second/page.html".
 	 * @return file contents
@@ -97,6 +111,11 @@ public class Util {
 	 * @return contents of the file
 	 */
 	public static String loadFile (String fileName) {
+		if (fileName == null) {
+			System.out.println("Util.loadfile() - a null parameter was passed..");
+			return null;
+		}
+		
 		String content = null;
 		File srcFile = new File (fileName);
 		BufferedReader br = null;
@@ -120,6 +139,10 @@ public class Util {
 			System.out.println (io.getMessage());
 			System.out.println (io.getCause());
 		}
+		catch (Exception ex) {
+			System.out.println ("Exception when loading file: "+fileName);
+			ex.printStackTrace();
+		}
 		finally {
 			try {
 				if (br != null)
@@ -140,6 +163,11 @@ public class Util {
 	 * @param fileName
 	 */
 	public static void saveFile (String contents, String fileName) {
+		if (contents == null || fileName == null) {
+			System.out.println("Util.savefile() - a null parameter was passed..");
+			return;
+		}
+		
 		FileOutputStream out = null;
 		try {
 			out = new FileOutputStream (fileName);
@@ -208,14 +236,33 @@ public class Util {
 	/**
 	 * Generate a new header section with the page information passed and update the content provided.
 	 * 
+	 * Note:  For backwards compatibility, the metadata are retained as follows:
+	 * 	-	title
+	 * 	-	name - the file name
+	 * 	-	pid - the page id (UUID)
+	 * 
 	 * @param content - Current web page content
 	 * @param cssFileName - CSS file name to be included in the header.
-	 * @param pageInfo - Page title, name, and pid.
+	 * @param pageInfo - Page title, file, and id.
 	 * 
-	 * @return updated page content
+	 * @return updated page content or null on error.
 	 */
 	public static String updateHeaderInfo(String content, String cssFileName, PageInfo pageInfo) {
-		//	Create fixed header block.
+		//	Check the parameters passed are not null.
+		if (content == null) {
+			System.out.println("Util.updateHeaderInfo() - content string passed is null.");
+			return content;
+		}
+		else if (cssFileName == null) {
+			System.out.println("Util.updateHeaderInfo() - CSS file name string passed is null.");
+			return content;			
+		}
+		else if (pageInfo == null) {
+			System.out.println("Util.updateHeaderInfo() - page info object passed is null.");
+			return content;
+		}
+		
+		//	1.  Create a new header block with CSS and metadata from page info.
 		StringBuffer fixedHeader = new StringBuffer();
 		fixedHeader.append("<!DOCTYPE html>\n");
 		fixedHeader.append("<html lang=\"en-us\">\n");
@@ -223,23 +270,48 @@ public class Util {
 		fixedHeader.append("\t<link rel=\"stylesheet\" href=\""+cssFileName+"\">\n");	//	Green is the nolaria theme.
 		fixedHeader.append("\t<title>"+pageInfo.title+"</title>\n");
 		fixedHeader.append("\t<meta name=\"title\" content=\""+pageInfo.title+"\" />\n");
-		fixedHeader.append("\t<meta name=\"name\" content=\""+pageInfo.name+"\" />\n");
-		fixedHeader.append("\t<meta name=\"pid\" content=\""+pageInfo.pid+"\" />\n");
+		fixedHeader.append("\t<meta name=\"name\" content=\""+pageInfo.file+"\" />\n");
+		fixedHeader.append("\t<meta name=\"pid\" content=\""+pageInfo.id+"\" />\n");
 
 		fixedHeader.append("\t<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n");
 		fixedHeader.append("\t<meta http-equiv=\"Pragma\" content=\"no-cache\" />\n");
 		fixedHeader.append("\t<meta http-equiv=\"Expires\" content=\"0\" />\n");
 
 		fixedHeader.append("</head>\n");
+				
+		//	2.  Determine the offset of the start of content.
+		int startOff = content.indexOf("</h1>");	//	This relies on the case being correct in the content file.
+		if (startOff == -1) {
+			//	Can't find </h1>, so look for <body> instead.
+			startOff = content.indexOf("<body>");
+			if (startOff == -1) {
+				System.out.println("\nUtil.updateHeaderInfo() - Unable to update header info - can't find start if content.");
+				return content;		//	Header is not updated.
+			}
+			else
+				//	Starting offset is found at BODY.
+				startOff += "<body>".length();
+		}
+		else {
+			//	Starting offset is found at /H1.
+			fixedHeader.append("<body>\n");
+			fixedHeader.append("\t<h1>"+pageInfo.title+"</h1>");			
+			startOff += "</h1>".length()+1;	//	The plus one consumes the old newline.
+		}
+
+		//System.out.println("\nFIXED HEADER:\n"+fixedHeader.toString());
+
+		//	3.  Split old header off from the remaining content.
+		String contentRemainder = content.substring(startOff, content.length());
 		
-		// System.out.println("\n"+fixedHeader.toString());
+		//System.out.println("\n\nCONTENT REMANDER: "+contentRemainder.substring(0, 20));
 		
-		String contentRemainder = null;
-		int startOff = content.indexOf("<body>");
+		//	4.  Merge the new header with content remainder to create the updated content.
+		String updatedContent = fixedHeader.toString()+contentRemainder;
 		
-		contentRemainder = content.substring(startOff, content.length());
-						
-		return fixedHeader+contentRemainder;
+		//System.out.println("\nFIXED CONTENT:\n"+updatedContent);
+
+		return updatedContent;
 	}
 
 	/**

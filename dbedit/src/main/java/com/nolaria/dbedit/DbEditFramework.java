@@ -180,6 +180,7 @@ public class DbEditFramework {
 	 */
 	public void doUpdate() {
 		
+		System.out.println("\n\nDbEditFramework.doUpdate() - starting the update.");
 		String id = request.getParameter("page-id");
 		String site = "nolaria";
 		String title = request.getParameter("page-title");
@@ -200,11 +201,12 @@ public class DbEditFramework {
 			this.error = "Cannot find the existing page: "+id;
 			return;		//	No update is performed.
 		}
-		System.out.println("Existing Page\n"+existingPage.toStringPretty());
+		//System.out.println("Existing Page\n"+existingPage.toStringPretty());
 		PageId updatedPage = new PageId(id, existingPage.getSite(), title, file, existingPage.getPath(), archivedFlag);
-		System.out.println("Update Page\n"+updatedPage.toStringPretty());
+		//System.out.println("Update Page\n"+updatedPage.toStringPretty());
 		
 		//	Check that new file name exists.
+		/*
 		String fullFileName = updatedPage.getFullFileName();
 		File f = new File(fullFileName);
 		if (!f.exists()) {
@@ -216,13 +218,13 @@ public class DbEditFramework {
 		}
 		else
 			System.out.println("Exists: "+fullFileName);
-			
+		*/
 		
 		//	Make the update.
 		try {
 			//	This will only update the identified record with a new title or file.  Other values are forced to be the same.
 			DbEditFramework.pageRegistry.updatePage(id, existingPage.getSite(), title, file, existingPage.getPath());
-			System.out.println("Page ["+id+"] was updated to title: "+title+" and file: "+file+".");
+			//System.out.println("Page ["+id+"] was updated to title: "+title+" and file: "+file+".");
 		}
 		catch (PageException pg) {
 			System.out.println("Unable to update page: "+id);

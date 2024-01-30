@@ -115,6 +115,16 @@ public class PageId implements Comparable<PageId> {
 	}
 	
 	/**
+	 * Get the PageInfo version of the page object.
+	 * 
+	 * @return PageInfo.
+	 */
+	public PageInfo getPageInfo() {
+		//	String title, String file, String id
+		return new PageInfo(this.title, this.file, this.id);
+	}
+	
+	/**
 	 * Returns the complete file name of the page that includes the path starting at the drive root.
 	 * @return file name string
 	 */

@@ -17,9 +17,11 @@ import java.util.Vector;
  *
  */
 public class SiteRegistry {	
-	private static String ALL_SITES_QUERY = "select id,name,path from site_registry";
-	private static String SITE_QUERY_NAME = "select id,path from site_registry where name=";
-	private static String SITE_QUERY_ID = "select name,path from site_registry where id=";
+	public static String LOCAL_HOST = "http://localhost:8080";
+	
+	private static String ALL_SITES_QUERY = "select * from site_registry";
+	private static String SITE_QUERY_NAME = "select * from site_registry where name=";
+	private static String SITE_QUERY_ID = "select * from site_registry where id=";
 	
 	/**
 	 * Get the list of registered sites.
@@ -74,7 +76,8 @@ public class SiteRegistry {
 				if (rs.first()) {
 					String id = rs.getString("id");
 					String path = rs.getString("path");
-					site = new Site(id, name, path);
+					String css = rs.getString("css");
+					site = new Site(id, name, path, css);
 				}
 		}
 		catch (SQLException sql) {
@@ -103,7 +106,8 @@ public class SiteRegistry {
 			if (rs.first()) {
 				String name = rs.getString("name");
 				String path = rs.getString("path");
-				site = new Site(id, name, path);
+				String css = rs.getString("css");
+				site = new Site(id, name, path, css);
 			}
 		}
 		catch (SQLException sql) {

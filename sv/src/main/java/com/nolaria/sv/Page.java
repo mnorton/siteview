@@ -66,10 +66,10 @@ public class Page {
 		//	Extract page information from the header.
 		PageInfo info = this.getHeaderInfo(this.getContent());
 		this.pageTitle = info.title;
-		if (info.pid == null)
+		if (info.id == null)
 			this.pageId = UUID.randomUUID().toString();
 		else
-			this.pageId = info.pid;
+			this.pageId = info.id;
 		//System.out.println(info.toString());
 	}
 

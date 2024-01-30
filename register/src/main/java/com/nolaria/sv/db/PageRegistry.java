@@ -153,10 +153,16 @@ public class PageRegistry {
 	public void createPage(String id, String site, String title, String file, String path) throws PageException {
 		//	Escape apostrophes in the title.
 		title = title.replace("'", "''");
-		
-		//this.checkConnector("register");
-		
-		// TODO:  Add a check to see if the page is already registered.
+				
+		//	Check to see if this page already exists.
+		try {
+			PageId pg = this.getPage(id);
+			if (pg == null)
+				throw new PageException("Attempt to create a page that is already registered with an id of: "+id);
+		}
+		catch (PageException pg) {
+			//	Swallow the exception and try to create this page.
+		}
 
 		//	Assemble the insert query.
 		String query = REGISTER_PAGE_QUERY + "('"+id+"','"+site+"','"+title+"','"+file+"','"+path+"')";
@@ -216,16 +222,19 @@ public class PageRegistry {
 		String fileName = parts[parts.length-1];
 				
 		//	Extract metadata from the page file.
+		//  TODO:  Refactor to use Util.loadFile() as the preferred way to get content.
 		String contents = Util.fetchContents(relFilePath);
 		PageInfo info = Util.getHeaderInfo(contents);			
 			
 		//	Register the page.  This will throw PageException if the page is already registered.
-		this.createPage(info.pid, site, info.title, fileName, path);		
+		this.createPage(info.id, site, info.title, fileName, path);		
 	}
 
 	/**
 	 * Update the site, title, file, and path of the page given by id.
 	 * Note:  old values must be passed if not changed.
+	 * 
+	 * TODO:  Add support to update the archived flag.
 	 * 
 	 * @param id of the page to update
 	 * @param site - new site name.
@@ -236,15 +245,16 @@ public class PageRegistry {
 	 */
 	public void updatePage(String id, String site, String title, String file, String path) throws PageException {
 		//	Escape apostrophes in the title.
-		title = title.replace("'", "''");
+		String dbTitle = title.replace("'", "''");
 		
 		//this.checkConnector("register");
+		//System.out.println("PageRegistry.updatePage() - title is:"+title+", file is:"+file);
 
 		//	Assemble the update query.
 		StringBuffer sb = new StringBuffer();
 		sb.append("UPDATE page_registry SET ");
 		sb.append("site='"+site);
-		sb.append("', title='"+title);
+		sb.append("', title='"+dbTitle);
 		sb.append("', file='"+file);
 		sb.append("', path='"+path);
 		sb.append("' where id='"+id+"';");
@@ -260,6 +270,20 @@ public class PageRegistry {
 		catch (SQLException sql) {
 			throw new PageException(sql.getMessage(), sql.getCause());
 		}
+		
+		//	Update the title and metadata in the content file.
+		SiteRegistry siteRegistry = new SiteRegistry();		
+		Site siteObject = siteRegistry.getSiteByName(site);
+		String cssUrl = siteObject.getCssUrl();
+
+		PageId page = new PageId(id, site, title, file, path, false);
+		PageInfo info = page.getPageInfo();
+		String fileName = page.getFullFileName();
+		String content = Util.loadFile(fileName);
+		if (content == null)
+			throw new PageException("PageRegistry.updatePage() = no content was found for file: "+fileName);
+		String revisedContent = Util.updateHeaderInfo(content, cssUrl, info);
+		Util.saveFile(revisedContent, fileName);
 	}
 
 	

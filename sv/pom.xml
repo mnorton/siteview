@@ -42,10 +42,30 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>3.8.1</version>
+      <version>4.8.1</version>
       <scope>test</scope>
     </dependency>
     -->
+
+	<!-- JUnit Test Support -->
+	<dependency>
+		<groupId>org.junit.jupiter</groupId>
+		<artifactId>junit-jupiter-engine</artifactId>
+		<version>5.4.0</version>
+		<scope>test</scope>
+	</dependency>
+	<dependency>
+		<groupId>org.junit.platform</groupId>
+		<artifactId>junit-platform-runner</artifactId>
+		<version>1.2.0</version>
+		<scope>test</scope>
+	</dependency>
+	<dependency>
+	  <groupId>org.apache.maven.plugins</groupId>
+	  <artifactId>maven-surefire-report-plugin</artifactId>
+	  <version>3.2.5</version>
+	  <type>maven-plugin</type>
+	</dependency>
 
 	  <!-- Log4j2 Support -->
 	  <dependency>
@@ -101,6 +121,20 @@
 	    <artifactId>maven-war-plugin</artifactId>
 	    <version>3.3.1</version>
 	  </plugin>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>3.0.0-M7</version>
+            <configuration>
+                <includes>
+                    <include>**/Test*.java</include>
+                </includes>
+                <excludes>
+                    <exclude>**/BaseTest.java</exclude>
+                    <exclude>**/TestsUtil.java</exclude>
+                </excludes>
+            </configuration>
+        </plugin>
   </plugins>
   </build>
 </project>

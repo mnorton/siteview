@@ -19,7 +19,7 @@ import com.nolaria.sv.db.*;
  * @author markjnorton@gmail.com
  *
  */
-public class Register {
+public class PageRegister {
 	private static final String DEFAULT_SITE = "nolaria";
 	
 	private static String ALLEGORY_ID = "7cbd34d1-72e3-43b9-b35d-4129ca489547";
@@ -28,7 +28,7 @@ public class Register {
 	
 	
 	//	An instance of the application class.
-	public static Register register = null;
+	public static PageRegister register = null;
 
 	//public String FILE_ROOT = "D:\\apache-tomcat-9.0.40\\webapps";	//	Moved to the Util class.
 
@@ -51,7 +51,7 @@ public class Register {
 	 * @throws Exception
 	 */
 	public static void main(String[] args) throws Exception {
-		Register.register = new Register();
+		PageRegister.register = new PageRegister();
 		  
 		// Open a database connection to access associated tables.
 		try {
@@ -240,7 +240,7 @@ public class Register {
 			
 			//	Register the page.
 			try {
-				this.pageRegistry.createPage(info.pid, DEFAULT_SITE, info.title, fileName, path);
+				this.pageRegistry.createPage(info.id, DEFAULT_SITE, info.title, fileName, path);
 				status = "REGISTERED";
 				this.registerCount++;
 			}

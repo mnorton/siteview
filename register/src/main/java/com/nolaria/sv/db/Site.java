@@ -10,9 +10,10 @@ package com.nolaria.sv.db;
  *
  */
 public class Site {
-	public String id;
-	public String name;
-	public String path;
+	public String id;		//	A numberical id for the site.
+	public String name;		//	The site name.
+	public String path;		//	Not used at this time.
+	public String css;		//	Cascading style sheet name.
 	
 	/**
 	 * Constructor given a name and path.
@@ -30,11 +31,13 @@ public class Site {
 	 * @param id - Site identifier number.
 	 * @param name - Site name.
 	 * @param path - Path to site.
+	 * @param css - Style sheet file name.
 	 */
-	Site (String id, String name, String path) {
+	Site (String id, String name, String path, String css) {
 		this.id = id;
 		this.name = name;
 		this.path = path;
+		this.css = css;
 	}
 
 	/**
@@ -62,11 +65,44 @@ public class Site {
 	}
 	
 	/**
+	 * Get the CSS file name.
+	 * @return css name.
+	 */
+	public String getCss() {
+		return this.css;
+	}
+
+	/**
+	 * Get the URL for the stylesheet.
+	 * 
+	 * @return style sheet url
+	 */
+	public String getCssUrl() {
+		return SiteRegistry.LOCAL_HOST + "/"+this.name+"/"+this.css;
+	}
+	
+	/**
 	 * Return a description string of the Site object.
 	 * return description string.
 	 */
 	public String toString() {
-		return "Site: "+this.id+" named: "+this.name+" with path: "+this.path;
+		return "Site: "+this.id+" named: "+this.name+" with path: "+this.path+" and style sheet name of: "+this.css;
+	}
+	
+	/**
+	 * Return a formatted string to show the values of this Site object.
+	 * @return formatted string.
+	 */
+	public String toStringPretty() {
+		StringBuffer sb = new StringBuffer();
+		
+		sb.append("Site Record Values:\n");
+		sb.append("\tid:   "+this.id+"\n");
+		sb.append("\tname: "+this.name+"\n");
+		sb.append("\tpath: "+this.path+"\n");
+		sb.append("\tcss:  "+this.css+"\n");
+		
+		return sb.toString();
 	}
 
 }

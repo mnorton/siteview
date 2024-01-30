@@ -385,8 +385,8 @@ public class FixInPlace {
 		fixedHeader.append("\t<link rel=\"stylesheet\" href=\"file:///C:/Web/green.css\">\n");
 		fixedHeader.append("\t<title>"+info.title+"</title>\n");
 		fixedHeader.append("\t<meta name=\"title\" content=\""+info.title+"\" />\n");
-		fixedHeader.append("\t<meta name=\"name\" content=\""+info.name+"\" />\n");
-		fixedHeader.append("\t<meta name=\"pid\" content=\""+info.pid+"\" />\n");
+		fixedHeader.append("\t<meta name=\"name\" content=\""+info.file+"\" />\n");
+		fixedHeader.append("\t<meta name=\"pid\" content=\""+info.id+"\" />\n");
 		fixedHeader.append("</head>\n");
 		
 		// System.out.println("\n"+fixedHeader.toString());
@@ -449,8 +449,8 @@ public class FixInPlace {
 		fixedHeader.append("\t<link rel=\"stylesheet\" href=\"http://localhost:8080/nolaria/green.css\">\n");
 		fixedHeader.append("\t<title>"+info.title+"</title>\n");
 		fixedHeader.append("\t<meta name=\"title\" content=\""+info.title+"\" />\n");
-		fixedHeader.append("\t<meta name=\"name\" content=\""+info.name+"\" />\n");
-		fixedHeader.append("\t<meta name=\"pid\" content=\""+info.pid+"\" />\n");
+		fixedHeader.append("\t<meta name=\"name\" content=\""+info.file+"\" />\n");
+		fixedHeader.append("\t<meta name=\"pid\" content=\""+info.id+"\" />\n");
 
 		fixedHeader.append("\t<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n");
 		fixedHeader.append("\t<meta http-equiv=\"Pragma\" content=\"no-cache\" />\n");
@@ -705,7 +705,7 @@ public class FixInPlace {
 				return;
 			}
 			else {
-				PageId page = registry.getPage(meta.pid);
+				PageId page = registry.getPage(meta.id);
 				if (page == null)
 					return;
 				
