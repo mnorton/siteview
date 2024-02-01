@@ -180,8 +180,8 @@ public class PageRegistryTest {
 			
 			//System.out.println(RegistryConnector.isValid()?"CONNECTOR VALID":"CONNECTOR INVALID");
 		}
-		catch (PageException page) {
-			System.out.println("Get All Sites failed: "+page.getCause().getMessage());
+		catch (SiteException site) {
+			System.out.println("Get All Sites failed: "+site.getCause().getMessage());
 			return false;
 		}
 		

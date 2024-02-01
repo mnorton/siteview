@@ -272,8 +272,14 @@ public class PageRegistry {
 		}
 		
 		//	Update the title and metadata in the content file.
-		SiteRegistry siteRegistry = new SiteRegistry();		
-		Site siteObject = siteRegistry.getSiteByName(site);
+		SiteRegistry siteRegistry = new SiteRegistry();
+		Site siteObject = null;
+		try {
+			siteObject = siteRegistry.getSiteByName(site);
+		}
+		catch (SiteException st) {
+			throw new PageException(st.getMessage(), st.getCause());
+		}
 		String cssUrl = siteObject.getCssUrl();
 
 		PageId page = new PageId(id, site, title, file, path, false);

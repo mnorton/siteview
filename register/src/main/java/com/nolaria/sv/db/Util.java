@@ -310,9 +310,14 @@ public class Util {
 				System.out.println("\nUtil.updateHeaderInfo() - Unable to update header info - can't find start if content.");
 				return content;		//	Header is not updated.
 			}
-			else
+			else {
+				//	Starting offset is found at BODY,
+				fixedHeader.append("<body>\n");
+				fixedHeader.append("\t<h1>"+pageInfo.title+"</h1>");			
+			}
+			//else - this is not needed, but preserved to show how it used to behave.
 				//	Starting offset is found at BODY.
-				startOff += "<body>".length();
+				//startOff += "<body>".length(); -- Causes the result to lack a <body> tag.
 		}
 		else {
 			//	Starting offset is found at /H1.

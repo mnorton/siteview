@@ -1,7 +1,7 @@
 package com.nolaria.sv.db;
 
 /**
- * A generic exception used by the Site View DB classes.
+ * A generic exception used by the Site View DB classes for page registry exceptions.
  * 
  * @author markjnorton@gmail.com
  *

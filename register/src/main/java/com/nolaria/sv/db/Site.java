@@ -4,13 +4,14 @@
 package com.nolaria.sv.db;
 
 /**
- * Java bean for a Site.
+ * A site is a web site managed by Tomcat consisting of files below a site root folder
+ * and a record in the site_regstry table.
  * 
- * @author markjnorton
+ * @author markjnorton@gmail.com
  *
  */
 public class Site {
-	public String id;		//	A numberical id for the site.
+	public int id;			//	A numerical id for the site.
 	public String name;		//	The site name.
 	public String path;		//	Not used at this time.
 	public String css;		//	Cascading style sheet name.
@@ -20,7 +21,7 @@ public class Site {
 	 * @param name
 	 * @param path
 	 */
-	Site (String name, String path) {
+	public Site (String name, String path) {
 		this.name = name;
 		this.path = path;
 	}
@@ -33,7 +34,7 @@ public class Site {
 	 * @param path - Path to site.
 	 * @param css - Style sheet file name.
 	 */
-	Site (String id, String name, String path, String css) {
+	public Site (int id, String name, String path, String css) {
 		this.id = id;
 		this.name = name;
 		this.path = path;
@@ -44,7 +45,7 @@ public class Site {
 	 * Get the unique site identifier.
 	 * @return site id
 	 */
-	public String getId() {
+	public int getId() {
 		return this.id;
 	}
 	
@@ -86,7 +87,7 @@ public class Site {
 	 * return description string.
 	 */
 	public String toString() {
-		return "Site: "+this.id+" named: "+this.name+" with path: "+this.path+" and style sheet name of: "+this.css;
+		return "Site: "+this.id+" named: "+this.name+" with path: "+this.path+" and stylesheet name of: "+this.css;
 	}
 	
 	/**

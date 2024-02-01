@@ -1,7 +1,7 @@
 package com.nolaria.tools;
 
-import com.nolaria.sv.db.PageException;
 import com.nolaria.sv.db.Site;
+import com.nolaria.sv.db.SiteException;
 import com.nolaria.sv.db.SiteRegistry;
 
 public class SiteRegistryTest {
@@ -11,7 +11,7 @@ public class SiteRegistryTest {
 	 * 
 	 * @param args
 	 */
-	public static void main(String[] args) throws PageException {
+	public static void main(String[] args) throws SiteException {
 		// TODO Auto-generated method stub
 
 		SiteRegistry siteRegistry = new SiteRegistry();

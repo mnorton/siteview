@@ -347,7 +347,13 @@ public class PageRegister {
 		
 		try {
 			//	These happen in the PageIdFramework constructor.
-			Site site = siteRegistry.getSiteByName(DEFAULT_SITE);
+			Site site = null;
+			try {
+				site = siteRegistry.getSiteByName(DEFAULT_SITE);
+			}
+			catch (SiteException st) {
+				st.printStackTrace();
+			}
 			
 			PageId testPage = pageRegistry.getPage(pid);
 			if (testPage != null)
