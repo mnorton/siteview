@@ -5,6 +5,7 @@ package com.nolaria.sv.db;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -194,6 +195,57 @@ public class Util {
 	}
 
 	/**
+	 * Copy a file.  This will overwrite files that already exists, so be warned!
+	 * This is the preferred way to copy files instead of loading and saving from memory.
+	 * copyFile() copies binary files.  No strings involved
+	 * 
+	 * [Moved from Converter - Feb 2, 2024]
+	 * 
+	 * @param from full file path
+	 * @param to full file path
+	 * @return true if the file was copied.
+	 */
+	public static boolean copyFile(String from, String to) {
+		boolean copyStatus = true;
+		File fromFile = new File(from);
+		File toFile = new File(to);
+		
+		//	Copy the file.
+		FileInputStream in = null;
+		FileOutputStream out = null;
+		try {
+			in = new FileInputStream(fromFile);
+			out = new FileOutputStream(toFile);
+
+			// Copy binary data from in to out.
+			int datum = 0;
+			while ((datum = in.read()) != -1) {
+				out.write(datum);
+			}
+		} 
+		catch (IOException io) {
+			io.printStackTrace();
+			copyStatus = false;
+		}
+		finally {
+			// Close all files.
+			try {
+			if (in != null)
+				in.close();
+			if (out != null)
+				out.close();
+			}
+			catch (IOException io2) {
+				io2.printStackTrace();
+				copyStatus = false;
+			}
+		}
+		
+		copyStatus = true;
+		return copyStatus;
+	}
+
+	/**
 	 * This utility method takes the page content and extracts key page data including:
 	 * 
 	 * 	-	Title
@@ -292,8 +344,10 @@ public class Util {
 		fixedHeader.append("\t<link rel=\"stylesheet\" href=\""+cssFileName+"\">\n");	//	Green is the nolaria theme.
 		fixedHeader.append("\t<title>"+pageInfo.title+"</title>\n");
 		fixedHeader.append("\t<meta name=\"title\" content=\""+pageInfo.title+"\" />\n");
-		fixedHeader.append("\t<meta name=\"name\" content=\""+pageInfo.file+"\" />\n");
-		fixedHeader.append("\t<meta name=\"pid\" content=\""+pageInfo.id+"\" />\n");
+		//fixedHeader.append("\t<meta name=\"name\" content=\""+pageInfo.file+"\" />\n");
+		//fixedHeader.append("\t<meta name=\"pid\" content=\""+pageInfo.id+"\" />\n");
+		fixedHeader.append("\t<meta name=\"file\" content=\""+pageInfo.file+"\" />\n");
+		fixedHeader.append("\t<meta name=\"id\" content=\""+pageInfo.id+"\" />\n");
 
 		fixedHeader.append("\t<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n");
 		fixedHeader.append("\t<meta http-equiv=\"Pragma\" content=\"no-cache\" />\n");

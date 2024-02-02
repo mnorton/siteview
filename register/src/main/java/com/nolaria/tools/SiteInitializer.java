@@ -52,8 +52,8 @@ public class SiteInitializer {
 			return;
 		}
 		
-		//	Register the new site.
-		site = this.siteRegistery.createSite(siteName, path, css);
+		//	Register the new site and initialize files, including the home page.
+		site = this.siteRegistery.createSite(siteName, path, css, true);
 		if (site == null) {
 			System.out.println("Unable to register the site.");
 			return;
@@ -62,8 +62,8 @@ public class SiteInitializer {
 			System.out.println("\nSite was registered: \n"+site.toStringPretty()+"\n");
 		
 		//	Create a fake site object.
-		site = new Site(1000,siteName,path,css);
-		this.setUpFiles(site, css);
+		//site = new Site(1000,siteName,path,css);
+		//this.setUpFiles(site, css);	//	Handled by SiteRegister.createSite() now.
 		
 		List<Site> sites = this.siteRegistery.getSites();
 		System.out.println("\nExisting sites:");

@@ -12,6 +12,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import com.nolaria.sv.db.*;
+
 /**
  * @author markjnorton@gmail.com
  *
@@ -55,7 +57,12 @@ public class Converter {
 	public static final String TEST_FILE_SRC = "D:\\Google-Download\\Takeout\\ClassicSites\\nolariaplanes\\home.html";
 	public static final String TEST_FILE_DEST = "D:\\apache-tomcat-9.0.40\\webapps\\planes\\home.html";
 	
+	//	Registries
+	public SiteRegistry siteRegistery = new SiteRegistry();
+	public PageRegistry pageRegistry = new PageRegistry();
+	
 	//	Instance variables.
+	public String siteName = null;			//	Extracted from the sourceRootName.
 	public int fileCount = 0;
 
 	/**
@@ -66,69 +73,187 @@ public class Converter {
 	 * @param args
 	 */
 	public static void main(String[] args) throws Exception {
-		/*
-		 * This is the code that would accep src and target site names. if (args.lenght
-		 * == 0 || args.length > 2) {
-		 * System.out.println("Usage: Starting at: "+srcPath+"  "+rootName+"\n");
-		 * return; } else { SRC_SITE = args[0]; TARGET_SITE = args[1]; }
-		 */
-
-		// app.convert("nolariadd", "nolaria");
-		app.prepareTargetSite(TARGET_SITE);
-		app.convert(SRC_SITE, TARGET_SITE);
+		System.out.println("Takeout Converter");
+		System.out.println("-----------------\n");
 		
-		System.out.println ("\nFiles converted: "+app.fileCount);
+		//	Check to see if arguments are passed.  These would be defined on the svconverter project.
+		String sourceRootName = null;
+		String cssName = null;
+		if (args.length == 2) {
+			sourceRootName = args[0];
+			cssName = args[1];
+		}
+		else {
+			System.out.println ("Arguments missing: SOURCE_ROOT, CSS_NAME");
+			return;		//	Exit the app.
+		}
 
-		//	Single file test.
-		/*
-		File testFile = new File(TEST_FILE_DEST);
-		if (testFile.exists())
-			testFile.delete();
-		app.convertAndCopy(TEST_FILE_SRC, TARGET_SITE);
-		*/
+		//System.out.println("Source Root Name: "+app.sourceRootName);
+		//System.out.println("CSS Name: "+app.cssName);
+
+		//	Extract the site name from the sourceRootName
+		String[] parts = sourceRootName.split("/");
+		int partCount = parts.length;
+		app.siteName = parts[partCount-1];
+		// System.out.println("Site to convert is named: "+app.siteName);
+		
+		//	Check to see if this site has already been created.
+		Site site = app.siteRegistery.getSiteByName(app.siteName);
+		if (site != null) {
+			System.out.println("Site "+app.siteName+" exists, initialization was skipped.");
+		}
+		else {		
+			System.out.println("\nReady to convert: "+app.siteName);
+			
+			//	Create the site, initialize folders and files, except for the home page.
+			String sitePath = "webapp/"+app.siteName;
+			site = app.siteRegistery.createSite(app.siteName, sitePath, cssName, false);	
+		}
+
+		//	Convert just the home page.
+		String homePageSourceName = sourceRootName+"/home.html";
+		app.convertPage(site, homePageSourceName);
+		
 	}
-
+	
 	/**
-	 * Prepare the target site by creating directories and copying the style sheet.
+	 * Convert the content of the source page passed and write it to the appropriate place in the site passed.
+	 * There is some special case treatment of home pages.  If the source points to a 'home.html' file, the path
+	 * is hard coded to an empty string (paths are relative to the root site folder) and the title is forced
+	 * to be a capitalized form of the site name.
 	 * 
-	 * @param siteName
+	 * @param site
+	 * @param homePageSrcName
 	 */
-	public void prepareTargetSite(String siteName) {
-		String targetFilePath = ROOT_PATH +"\\"+siteName;
-		String mediaFilePath = targetFilePath+"\\"+MEDIA_DIR_NAME;
-
-		//	Create the target site directory.
-		File rootDirFile = new File(targetFilePath);
-		if (!rootDirFile.exists()) {
-			rootDirFile.mkdir();
+	public void convertPage(Site site, String homePageSourceName) {
+		//	Check for null arguments.
+		if ( (site == null) || (homePageSourceName == null)) {
+			System.out.println("Null arguments were passed to convertHomePage()");
+			return;
 		}
-		else
-			System.out.println("Root site directory already exists for: "+siteName);
-
-		//	Create the media directory
-		File mediaDirFile = new File(mediaFilePath);
-		if (!mediaDirFile.exists()) {
-			mediaDirFile.mkdir();
-		}
-		else
-			System.out.println("Media directory already exists for: "+siteName);
 		
-		//	Copy the style sheet.
-		String targetStylePath = targetFilePath + "\\" + siteName + ".css";
+		System.out.println("Source home page: "+homePageSourceName);
+		
+		//	Check that the source home page exists.
+		File srcHomePage = new File(homePageSourceName);
+		if (!srcHomePage.exists()) {
+			System.out.println("Source home page doesn't exist at the path given.");
+			return;
+		}
+		
+		//	Extract the page file name.
+		String[] parts = homePageSourceName.split("/");
+		int partCount = parts.length;
+		String pageFileName = parts[partCount-1];
+		System.out.println("Page file name: "+pageFileName);
+		
+		//	If this is a home page, then special handling follows later.
+		Boolean isHomePage = pageFileName.compareTo("home.html")==0;
+
+		//	Create the destination home page.
+		String homePageDestName = "";
+		if (isHomePage) {
+			homePageDestName = this.siteRegistery.getFileRoot()+"/"+site.getName()+"/"+site.getName()+".html";
+		}
+		else {
+			//	Home page dest name needs to have a path inserted if not a home page.
+			System.out.println("homePageDestName not handled for non-home pages.");
+			return;
+		}
+		System.out.println("Destination home page: "+homePageDestName);
+		
+		//	Check to see if the destination home page already exists.
+		File destHomePage = new File(homePageDestName);
+		if (destHomePage.exists()) {
+			System.out.println("Destination home page file already exists.");
+			System.out.println("Deleting the file - the page record is not deleted.");
+			destHomePage.delete();
+		}
+		
+		System.out.println("Ready to convert and write the site home page.");
+		
+		//	Load the source content.
+		String srcContent = Util.loadFile(homePageSourceName);
+		if (srcContent == null) {
+			System.out.println("Unable to load source content.");
+			return;
+		}
+		
+		//	If this is a home page, force the title to be the site name.
+		String title = "";
+		if (isHomePage) {
+			title = site.getName();
+			title = Util.capitalize(title);
+			System.out.println("Title forced to be the site name: ["+title+"]");
+		}
+		else {
+			title = this.extractTitle(srcContent);
+			System.out.println("Title extracted from source: ["+title+"]");
+		}
+
+		//	Create the path and assign a UUID.
+		String path = "";		//	No path if the file is at the site root.
+		if (!isHomePage) {
+			String[] srcParts = homePageSourceName.split("/");
+			//	Ex:  D:/Google-Download/Takeout/ClassicSites/nolaria/altamek/allegory.html
+			//	Splits into:  "D:", "Google-Download", "Takeout", "ClassicSites", "nolaria", altamek", "allegory.html"
+			//	Path starts right after the site name (offset 4) and ends at length-2.
+			//	This results in a path of "altamek".
+			int pathStart = 0;
+			int pathEnd = srcParts.length-2;
+			for (String s : srcParts) {
+				if (s.compareTo(siteName) == 0) {
+					pathStart += 1;
+					break;
+				}
+				else
+					pathStart++;
+			}
+			for (int i=pathStart; i<=pathEnd; i++) {
+				path += srcParts[i];
+				if (i<pathEnd)
+					path += "/";
+			}
+		}
+		String uuid = UUID.randomUUID().toString();
+		// String id, String site, String title, String file, String path, boolean archived
+		PageId tempPage = new PageId(uuid, site.getName(), title, site.getName()+".html", path, false);
+		
+		//	Gather the document parts. 
+		String headText = this.getHeaderText(tempPage);
+		String bodyText = this.extractBody(srcContent);
+		bodyText = this.fixLineEnds(bodyText);
+		
+		//	Unit them to create a converted, but not fully fixed content string.
+		String convertedContent = headText + bodyText + "\n</body>\n</html>\n";
+		
+		//	Apply all other fixes.
+		convertedContent = this.fixContent(convertedContent);
+		//System.out.println("\n"+convertedContent);
+		
+		//	Save the converted and fixed content to its destination location.
+		Util.saveFile(convertedContent, homePageDestName);
+		
+		//	Register the page.
+		if (isHomePage)
+			//	In the case of the home page, force the home page file name to reflect the site name.
+			pageFileName = siteName + ".html";
 		try {
-			this.copyFile(STYLE_SHEET_PATH, targetStylePath);
+			this.pageRegistry.createPage(uuid, siteName, title, pageFileName, path);
 		}
-		catch (IOException io) {
-			System.out.println("Unable to copy "+STYLE_SHEET_PATH+" to "+targetStylePath);
-			System.out.println(io.getMessage());
+		catch (PageException pg) {
+			System.out.println("Unable to register page: "+pageFileName+": "+pg.getMessage());
 		}
-		
-		System.out.println(siteName+ " was prepared successfully.\n");
 	}
+	
 
 	/**
 	 * Convert the files in TAKEOUT_DIR/dirName to a new set of SiteView pages based
 	 * on the Page Ref Model in Tomcat.
+	 * WARNING:  Uses recursion to walk the source content tree.
+	 * 
+	 * @param srcName - full page to the source folder to convert.
+	 * @param siteName - new site content is converted to.
 	 */
 	public void convert(String srcName, String siteName) {
 		String srcPath = TAKEOUT_DIR + "\\" + srcName;
@@ -164,6 +289,7 @@ public class Converter {
 	 * </ol>
 	 * 
 	 * WARNING: This method uses recursion to traverse a file system tree.
+	 * TODO:  Update to use convert()
 	 * 
 	 * @param depth         - current depth of the tree walk. Can be used for
 	 *                      indentation if needed.
@@ -197,7 +323,7 @@ public class Converter {
 			switch (type) {
 			case WEB:
 				// Convert and copy the web page.
-				System.out.println(indent(depth) + "Copy and Convert Page: " + srcName + " to: " + relTargetPath);
+				System.out.println(Util.indent(depth) + "Copy and Convert Page: " + srcName + " to: " + relTargetPath);
 
 				this.convertAndCopy (filePath, relTargetPath);
 				this.fileCount++;
@@ -241,8 +367,8 @@ public class Converter {
 				// copyFile (filePath, relTargetPath);
 				// copyFile (filePath, rootName+FileSep+"media");
 				String targetFileName = ROOT_PATH+"\\"+TARGET_SITE+"\\"+MEDIA_DIR_NAME+"\\"+srcName;
-				System.out.println(indent(depth)+"Copy image from "+filePath+" to: "+targetFileName);
-				this.copyFile(filePath, targetFileName);
+				System.out.println(Util.indent(depth)+"Copy image from "+filePath+" to: "+targetFileName);
+				Util.copyFile(filePath, targetFileName);
 				
 				//System.out.println (indent(depth)+"Copy image relative: "+relTargetPath+" name: "+srcName+" media: "+MEDIA_DIR_NAME);				
 				//////this.copyFileRelative (filePath, rootName, MEDIA_DIR_NAME);
@@ -252,11 +378,11 @@ public class Converter {
 				break;
 
 			default:
-				System.out.println(indent(depth) + "Unknown file type: " + type + " for " + srcName);
+				System.out.println(Util.indent(depth) + "Unknown file type: " + type + " for " + srcName);
 				return;
 			}
 		} else
-			System.out.println(indent(depth) + "Node to process is not a file:  " + srcNode.getName());
+			System.out.println(Util.indent(depth) + "Node to process is not a file:  " + srcNode.getName());
 	}
 
 	/****************************************************************************
@@ -391,43 +517,12 @@ public class Converter {
 		}
 	}
 	
-	/**
-	 * Copy a file.  This will overwrite files that already exists, so be warned!
-	 * 
-	 * @param from full file path
-	 * @param to full file path
-	 * @throws IOException so that calling code can handle it.
-	 */
-	public void copyFile(String from, String to) throws IOException {
-		File fromFile = new File(from);
-		File toFile = new File(to);
-		
-		//	Copy the file.
-		FileInputStream in = null;
-		FileOutputStream out = null;
-		try {
-			in = new FileInputStream(fromFile);
-			out = new FileOutputStream(toFile);
-
-			// Copy binary data from in to out.
-			int datum = 0;
-			while ((datum = in.read()) != -1) {
-				out.write(datum);
-			}
-		} finally {
-			// Close all files.
-			if (in != null)
-				in.close();
-			if (out != null)
-				out.close();
-		}
-	}
-
 	/****************************************************************************
 	 * CONTENT METHODS
 	 ****************************************************************************/
 
 	/**
+	 * @deprecated in favor of convertPage()
 	 * The standard converter method.
 	 * 
 	 * Currently, this uses a static file system path to the set of pages to be
@@ -457,6 +552,56 @@ public class Converter {
 		targetContent = this.fixImages(targetContent);
 
 		return targetContent;
+	}
+	
+	
+	/**
+	 * Apply known fixes to the document content passed.
+	 * 
+	 * @param content
+	 * @return fixed content.
+	 */
+	public String fixContent(String content) {
+		String temp = content;
+		
+		temp = this.fixNonBreakSpace(content);
+		//temp = this.fixLinks(temp);
+		//temp = this.fixImages(temp);
+		
+		return temp;
+	}
+	
+	/**
+	 * Google Takeout uses the 'Â' as a kind of non-breaking space.  This fix converts those
+	 * characters into an HTML character symbol, &nbsp;
+	 * @param content
+	 * @return
+	 */
+	private String fixNonBreakSpace(String content) {
+		//String fixedContent = content.replace("Â", "&nbsp;"); // Convert non-breaking spaces
+		String fixedContent = content.replace("Â", ""); 		// Remove non-breaking spaces
+		return fixedContent;
+	}
+	
+	/**
+	 * Google's Takeout content has been striped of white space to make the files smaller.
+	 * That results in a file that's impossible to read.
+	 * 
+	 * Fix Line Ends solves this problem by:
+	 * 
+	 *   - Inserting a new line after closing element.
+	 *   - Inserting a new line before closing element.
+	 * 
+	 * @param content
+	 * @return
+	 */
+	private String fixLineEnds(String content) {
+		String fixedContent = content;
+		
+		fixedContent = fixedContent.replace("/>", "/>\n");
+		fixedContent = fixedContent.replace("</", "\n</");		
+		
+		return fixedContent;
 	}
 
 	/**
@@ -622,6 +767,8 @@ public class Converter {
 	}
 
 	/**
+	 * @deprecated in favor of extractNames(), below
+	 * 
 	 * Google Sites had both a page title and name. In most cases, these are the
 	 * same, but pages may have a different title than name. This method extracts
 	 * the title and name from meta tags in the source content (before conversion).
@@ -771,13 +918,68 @@ public class Converter {
 
 		//System.out.println("Final title: "+capTitle);
 
-		title = this.capitalize(title);
+		title = Util.capitalize(title);
 		properties.put("title", title);
 		
 		return properties;
 	}
 
 	/**
+	 * Extracts the page title and name from the <title> element in the source content header.
+	 * Page name is the same as the original title.
+	 * New page title converts dashes to spaces and capitalizes words.
+	 * 
+	 * Examples to handle:
+	 * 	1. place (no dashes) ==> Place
+	 * 	2. place-1 (single dash) ==> Place 1
+	 * 	3. place--1 (two dashes) ==> Place 1
+	 * 	4. place - 1 (space dash space) ==> Place - 1
+	 * 	5. place---1 (three dashers) ==> Place - 1
+	 * 
+	 * @param content of page
+	 * @return a map containing title and name entries.
+	 */
+	public String extractTitle(String content) {
+		//	Extract the name from the title element.
+		int titleStart = content.indexOf("<title>");
+		int titleEnd = content.indexOf("</title>");
+		String title = content.substring(titleStart+"<title>".length(), titleEnd);
+
+		//	Strip off the site title.
+		//title = title.replaceAll(SRC_TITLE, "");
+
+		//	Fix dashes to make words in the title.
+		title = title.replaceAll(" - ", " ");
+		title = title.replaceAll("---", " ");
+		title = title.replaceAll("--", " ");
+		title = title.replaceAll("-", " ");
+		
+		title = Util.capitalize(title);
+		
+		return title;
+	}
+	
+	/**
+	 * Relying on the BODY tag doesn't work with Takeout content.  The content
+	 * starts at DIV and ends at another.
+	 * @param content
+	 * @return
+	 */
+	public String extractBody (String content) {
+		String start = "<div id=\"sites-canvas-main-content\">";
+		String end = "<div id=\"sites-canvas-bottom-panel\">";
+
+		/* Find the start and end points. */
+		int startOffset = content.indexOf(start);
+		int endOffset = content.indexOf(end);
+
+		/* Extract the body content. */
+		String extractedContent = content.substring(startOffset, endOffset);
+		return extractedContent;
+	}
+	
+	/**
+	 * @deprecated in favor of Util.updateHeaderInfo()
 	 * Generate header text to be included in output file. Text generation is
 	 * dependent on the contentOnly flag.
 	 * 
@@ -847,6 +1049,36 @@ public class Converter {
 			sb.append("<h1>" + title + "</h1>\n");
 		}
 
+		return sb.toString();
+	}
+	
+	public String getHeaderText(PageId page) {
+		StringBuffer sb = new StringBuffer();
+		
+		// Add header block with title and meta tags.
+		sb.append("<!DOCTYPE html>\n");
+		sb.append("<html lang=\"en-us\">\n");
+		sb.append("<head>\n"); // Fixed from <header>
+		//	This style sheet reference allows BlueGriffin to style text during edit.
+		
+		// TODO:  Fix hard coded CSS reference.
+		//sb.append("\t<link rel=\"stylesheet\" href=\"/" + STYLE_SHEET_URL + "\">\n");
+		sb.append("\t<link rel=\"stylesheet\" href=\"http://localhost:8080/nolaria/green.css\">\n");
+		sb.append("\t<title>"+page.getTitle()+"</title>\n");
+
+		// Add title and name meta tags.
+		sb.append("\t<meta name=\"title\" content=\"" + page.getTitle() + "\" />\n");
+		sb.append("\t<meta name=\"file\" content=\"" + page.getFile() + "\" />\n");
+		sb.append("\t<meta name=\"id\" content=\"" + page.getId() + "\" />\n");
+		
+		sb.append("\t<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n");
+		sb.append("\t<meta http-equiv=\"Pragma\" content=\"no-cache\" />\n");
+		sb.append("\t<meta http-equiv=\"Expires\" content=\"0\" />\n");
+
+		sb.append("</head>\n"); // Fixed from </header>
+		sb.append("<body>\n");
+		sb.append("<h1>" + page.getTitle() + "</h1>\n");
+		
 		return sb.toString();
 	}
 
@@ -945,21 +1177,23 @@ public class Converter {
 	}
 
 	/**
-	 * TODO:  Move this to the com.nolaria.sv.db.Util class
+	 * @deprecated in favor of Util.tabber();
 	 * Return a string with a set of tabs equal to the depth passed.
 	 * 
 	 * @param depth
 	 * @return tab string
 	 */
+	/*
 	public String indent(int depth) {
 		StringBuffer sb = new StringBuffer();
 		for (int i = 0; i < depth; i++)
 			sb.append("\t");
 		return sb.toString();
 	}
+	*/
 	
 	/**
-	 * TODO:  Move this to the com.nolaria.sv.db.Util class
+	 * @deprecated in favor of Util.capitalize()
 	 * Return a string where each word is capitalized.
 	 * For example "pleasure dome 1" becomes "Pleasure Dome 1"
 	 * 
@@ -969,6 +1203,7 @@ public class Converter {
 	 * @param title
 	 * @return capitalized title
 	 */
+	/*
 	public String capitalize(String title) {
 		//	Capitalize words.
 		String[] parts = title.split(" ");
@@ -986,4 +1221,5 @@ public class Converter {
 		capTitle = capTitle.trim();
 		return capTitle;
 	}
+	*/
 }
