@@ -21,7 +21,9 @@ import java.util.Vector;
 public class SiteRegistry {	
 	public static String LOCAL_HOST = "http://localhost:8080";
 	public static String FILE_ROOT = "D:/apache-tomcat-9.0.40/webapps";
-	public static String FILE_REPO = "D:/dev/siteview/shared/styles";
+	public static String FILE_REPO = "D:/dev/siteview/shared";
+	public static String MEDIA_DIR_NAME = "media";
+	public static String STATUS_FILE_NAME = "status.properties";
 	
 	private static String ALL_SITES_QUERY = "select * from site_registry";
 	private static String SITE_QUERY_NAME = "select * from site_registry where name=";
@@ -237,11 +239,11 @@ public class SiteRegistry {
 		
 		//	The file root is where all websites and webapps live on Tomcat.
 		String fileRootName = this.getFileRoot();
-		System.out.println("File root name: "+fileRootName);
+		//System.out.println("File root name: "+fileRootName);
 		
 		//	The site root is the folder where the managed site lives.
 		String siteRootName = fileRootName + "/" +site.getName();
-		System.out.println("Site root name: "+siteRootName);
+		//System.out.println("Site root name: "+siteRootName);
 		
 		//	Create the root folder, if it doesn't exist.
 		File rootFolder = new File(siteRootName);
@@ -258,9 +260,10 @@ public class SiteRegistry {
 		
 		//	The site folder is where the content lives.
 		String siteFolderName = siteRootName + "/" +site.getName();
-		System.out.println("Site folder name: "+siteFolderName);
+		//System.out.println("Site folder name: "+siteFolderName);
 
 		//	Create the content folder if it doesn't already exist.
+		/*  Converted content is not being put into this folder, so there is not need to create it.
 		File siteFolder = new File(siteFolderName);
 		if (siteFolder.exists())
 			System.out.println("Site content folder already exists.  Skipping this step.");
@@ -272,22 +275,27 @@ public class SiteRegistry {
 				return;
 			}
 		}
+		*/
 
 		// The media folder is where pictures (etc) are kept for the new site.
 		String mediaFolderName = siteRootName + "/media";
-		System.out.println("Media folder name: "+mediaFolderName);
+		//System.out.println("Media folder name: "+mediaFolderName);
 		
 		//	Create the media folder if it doesn't exist.
 		File mediaFolder = new File(mediaFolderName);
 		if (mediaFolder.exists())
 			System.out.println("Media  folder already exists.  Skipping this step.");
 		else {
-			if (mediaFolder.mkdir())
+			mediaFolder.mkdir();
+			/*
+			if (mediaFolder.mkdir()) {
 				System.out.println("Media folder created.");
+			}
 			else {
 				System.out.println("Media folder was not created.");
 				return;
 			}
+			*/
 		}
 		
 		//	Create an empty (ghost) home page.
@@ -319,7 +327,17 @@ public class SiteRegistry {
 				//System.out.println("\nUpdated content: \n"+content+"\n");
 				
 				//	Write the new page out.
-				Util.saveFile(content, homePageName);					
+				Util.saveFile(content, homePageName);
+				
+				//	Register the new page.
+				PageRegistry pr = new PageRegistry();
+				try {
+					// String id, String site, String title, String file, String path
+					pr.createPage(pgId, site.getName(), pgTitle, pgFile, "");
+				} 
+				catch (PageException pg) {
+					pg.printStackTrace();
+				}
 			}
 			else
 				System.out.println("Site page already exists.");
@@ -327,14 +345,25 @@ public class SiteRegistry {
 
 		//	Copy the CSS file from the shared repo.
 		String css = site.getCss();
-		String cssSrcName = SiteRegistry.FILE_REPO+"/"+css;
+		String cssSrcName = SiteRegistry.FILE_REPO+"/styles/"+css;
 		String cssDestName = siteRootName+"/"+css;
-		System.out.println("CSS source file name: "+cssSrcName);
-		System.out.println("CSS dest file name: "+cssDestName);
+		//System.out.println("CSS source file name: "+cssSrcName);
+		//System.out.println("CSS dest file name: "+cssDestName);
 
 		//String cssContent = Util.loadFile(cssSrcName);
 		Util.copyFile(cssSrcName, cssDestName);
-		System.out.println("The "+css+" file was copied to the new site.");
+		//System.out.println("The "+css+" file was copied to the new site.");
+		
+		//	Copy the banner over, if it exists.
+		String bannerName = site.getName()+"-banner.png";
+		String bannerSrcName = SiteRegistry.FILE_REPO+"/banners/"+bannerName;
+		File bannerSrcFile = new File(bannerSrcName);
+		if (!bannerSrcFile.exists()) {
+			bannerName = "test-banner.png";
+			bannerSrcName = SiteRegistry.FILE_REPO+"/banners/"+bannerName;
+		}
+		String bannerDestName = siteRootName+"/media/"+bannerName;
+		Util.copyFile(bannerSrcName, bannerDestName);
 	}
 
 }

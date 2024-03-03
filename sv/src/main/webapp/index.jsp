@@ -20,8 +20,13 @@
 </head>
 <body>
 
-<div id="banner" style="width: 100%; height: 180px; border-style: solid; border-width: 1px; padding: 20px; background-color:#709d3e">
-	<%= framework.getBanner()  %>
+<div id="top" style="height: 220px; border-style: solid; border-width: 1px; padding: 20px; background-color:#709d3e; display: grid; grid-template-columns: 70% 30%" >
+	<div id="banner" style="padding: 20px">
+		<%= framework.getBanner()  %>
+	</div id="menus" style="padding: 20px">
+	<div>
+		<b>No Menu Here!</b>
+	</div>
 </div>
 
 <div id="middle" style="width: 100%; display: grid; grid-template-columns: 30% 70%">
@@ -38,7 +43,7 @@
 </div>
 
 <div id="footer" style="height: 40px; width: 100%; border-style: solid; border-width: 1px; padding:20px; background-color:#709d3e">
-	<span style="text-align: center"> © 2021 Mark J. Norton, All Rights Reserved<br></span>
+	<span style="text-align: center"> © 2024 Mark J. Norton, All Rights Reserved<br></span>
 </div>
 
 </body>

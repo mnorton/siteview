@@ -62,7 +62,8 @@ public class PageRegistryTest {
 			test.testHardDeletePage();
 		}
 		
-		test.testGetBodyContent();
+		//test.testGetBodyContent();
+		test.testGetByFile();
 	}
 	
 	/***********************************************************
@@ -409,5 +410,31 @@ public class PageRegistryTest {
 		}
 		return true;
 	}
+
+	/**
+	 * Get the PageId object by site, path, and file.
+	 * 
+	 * @return true if page was found.
+	 */
+	public boolean testGetByFile() {
+		try {
+			//	Get all of the content
+			String site = "nolaria";
+			String path = "";
+			String file = "nolaria.html";
+			PageId nolariaPage = this.pageRegistry.getPageByFile(site,path, file);
+			if (nolariaPage == null) {
+				System.out.println ("Unable to get page: ["+site+"] - ["+path+"] - ["+file+"]");
+				return false;
+			}
 			
+			System.out.println(nolariaPage.toStringPretty());
+		}
+		catch (PageException pg) {
+			pg.printStackTrace();
+			return false;
+		}
+		return true;
+		
+	}
 }

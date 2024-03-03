@@ -139,6 +139,76 @@ public class PageRegistry {
 		
 		return page;
 	}
+
+	/**
+	 * While the UUID assigned to a page is globally unique, a page can also be identified uniquely
+	 * by site, path, and name.  This method uses those to get a record and return it as a PageId object>
+	 * @param siteToFind
+	 * @param pathToFind
+	 * @param fileToFind
+	 * @return
+	 * @throws PageException
+	 */
+	public PageId getPageByFile(String siteToFind, String pathToFind, String fileToFind) throws PageException {
+		if ((pathToFind == null) || (fileToFind == null))
+			throw new PageException("Null parameters passed to getPageByName().");
+		
+		PageId page = null;		
+		Connection connector = RegistryConnector.getConnector();
+
+		//	Create the select query.
+		String pageByFileQuery = "select * from page_registry where site='"+siteToFind+
+				"' and path='"+pathToFind+"' and file='"+fileToFind+"'";
+		//System.out.println(pageByFileQuery);
+		try(Statement stmt = connector.createStatement())  {		
+			ResultSet rs = stmt.executeQuery(pageByFileQuery);
+			
+			//	If there is no first, page is returned as null.
+			if (rs.first()) {
+				String id = rs.getString("id");
+				String site = rs.getString("site");
+				String title = rs.getString("title");
+				String file = rs.getString("file");
+				String path = rs.getString("path");
+				String archived = rs.getString("archived");
+				
+				// String id, String site, String title, String file, String path, boolean archived.
+				page = new PageId(id, site, title, file, path, archived.charAt(0)=='T');
+			}
+		}
+		catch (SQLException sql) {
+			throw new PageException(sql.getMessage(), sql.getCause());
+		}
+		
+		return page;
+	}
+
+	/**
+	 * Get a PageId object given a file name that contains the site name, path, and file name of
+	 * the desired page.
+	 * 
+	 * @param fileName
+	 * @return PageId object.
+	 * @throws PageException
+	 */
+	public PageId getPageByFileName(String fileName) throws PageException {
+		if (fileName == null)
+			throw new PageException("Null parameters passed to getPageByFileName().");
+		
+		//System.out.println("getPageByFileName(): "+fileName);
+		if (fileName.indexOf(SiteRegistry.FILE_ROOT) != -1) {
+			fileName = fileName.substring(SiteRegistry.FILE_ROOT.length(), fileName.length());
+		}
+		
+		//System.out.println("getPageByFileName(): "+fileName);
+		String[] parts = fileName.split("/");
+		
+		String siteName = parts[0];
+		String relPath = Util.extractRelativePath(siteName, fileName);	
+		String pageName = parts[parts.length-1];
+		
+		return this.getPageByFile(siteName, relPath, pageName);
+	}
 	
 	/**
 	 * Create a page given information about it and register it.
@@ -167,7 +237,7 @@ public class PageRegistry {
 		//	Assemble the insert query.
 		String query = REGISTER_PAGE_QUERY + "('"+id+"','"+site+"','"+title+"','"+file+"','"+path+"')";
 		//System.out.println(query);
-		System.out.println("Registered: "+file+": "+id);
+		//System.out.println("Registered: "+file+": "+id);
 		
 		Connection connector = RegistryConnector.getConnector();
 

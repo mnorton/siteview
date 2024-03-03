@@ -132,7 +132,7 @@ public class PageRegister {
 	 */
 	private void directoryWalker (int level, String relPath, StringBuffer sb) throws PageException {		
 		//	Convert relative path to a full path.
-		String dirPath = Util.FILE_ROOT + relPath;
+		String dirPath = SiteRegistry.FILE_ROOT + relPath;
 		File dirFile = new File(dirPath);
 				
 		// Check for no files in this directory.
@@ -163,7 +163,7 @@ public class PageRegister {
 		
 		for (File f: files) {
 			String name = f.getName();
-			String relFilePath = Util.extractRelativePath(f.getPath());		//	Includes /sv/ at the start.
+			String relFilePath = Util.extractRootPath(f.getPath());		//	Includes /sv/ at the start.
 			relFilePath = relFilePath.replaceAll("\\\\", "/");
 						
 			//	See if this file is a directory.

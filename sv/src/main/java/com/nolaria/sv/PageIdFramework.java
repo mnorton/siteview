@@ -25,14 +25,13 @@ import com.nolaria.sv.db.PageInfo;
  * to specify a page.
  * 
  * @author Mark J. Norton - markjnorton@gmail.com
- *
  */
 public class PageIdFramework {
 	//	Constants
 	public static String DEFAULT_SITE = "nolaria";
-	public static String DEFAULT_BANNER = "/media/customLogo.gif";
+	//public static String DEFAULT_BANNER = "/media/customLogo.gif";	//	Built from site name now.
 	public static int MAX_NAV_DEPTH = 100;
-	public static String FILE_ROOT = "D:\\apache-tomcat-9.0.40\\webapps";
+	//public static String FILE_ROOT = "D:\\apache-tomcat-9.0.40\\webapps";	//	Use SiteRegistry.ROOT_FILE.
 	public static enum NavModeType {BROWSE, SEARCH};
 	
 	//	Database APIs.
@@ -44,10 +43,11 @@ public class PageIdFramework {
 	public HttpServletRequest request = null;
 	
 	//	Site and page information.
-	public String siteName = null;
-	public Site site = null;
-	public String identifier = null;
-	public PageId page = null;
+	public String siteName = null;		//	Site name for this site.
+	//public String identifier = null;	//	Identifier for this page.	//	Use page.getId().
+	public Site site = null;			//	Site object for this site
+	public PageId page = null;	//	Page object for this page.
+	public PageId home = null;	//	Page object for the site home page.
 	
 	//	Search parameters
 	public String parameters = null;
@@ -58,7 +58,7 @@ public class PageIdFramework {
 
 	/**
 	 * Constructor for the Page Id Framework given an HTTP servlet request.
-	 * This class relies on a local database called site_view running an accessible with 
+	 * This class relies on a local database called site_view running and accessible with 
 	 * previously established credentials.
 	 * 
 	 * Refactored to rename this.pageId to this.identifier.  It avoids type ahead problems. - Jan. 30, 2024
@@ -74,12 +74,12 @@ public class PageIdFramework {
 			this.siteName = DEFAULT_SITE;
 		
 		//	Extract the page id parameter.  Show error if none provided.
-		this.identifier = (String)request.getParameter("id");
-		if (this.identifier == null)
+		String identifier = (String)request.getParameter("id");
+		if (identifier == null)
 			this.error ="A page identifier was not provided.";
 				
 		System.out.println("\n============================ Site Viewer =============================\n");
-		System.out.println ("Page request for: "+this.siteName+" - "+this.identifier+"\n");
+		System.out.println ("Page request for: "+this.siteName+" - "+identifier+"\n");
 		
 		//	Get the Site object.
 		this.site = siteRegistry.getSiteByName(this.siteName);
@@ -90,16 +90,24 @@ public class PageIdFramework {
 		else
 			System.out.println ("Site: "+site.toString());
 		
-		//	Get the PageId object.
-		this.page = pageRegistry.getPage(this.identifier);
+		//	Get the page object for this page.
+		this.page = pageRegistry.getPage(identifier);
 		if (this.page == null) {
 			//	This can happen by manually entering a URL with an invalid page ID.
-			System.out.println("Page not found for:  "+this.identifier);
-			this.error = "Page not found for: "+this.identifier;
+			System.out.println("Page not found for:  "+identifier);
+			this.error = "Page not found for: "+identifier;
 			return;
 		}
 		else
 			System.out.println ("Page: "+this.page.toString());
+		
+		//	Get the page object for the site home page.
+		this.home = pageRegistry.getPageByFile(this.siteName, "", this.siteName+".html");
+		if (this.home == null) {
+			System.out.println("Home page not found for:  "+this.siteName);
+			this.error = "Home page not found for: "+this.siteName;
+			return;			
+		}
 		
 		//	Create a map of filenames to pages.  Allows lookup of pages by file name from directory walk.
 		List<PageId> pageList = pageRegistry.getAllPages();
@@ -175,11 +183,12 @@ public class PageIdFramework {
 		}
 		
 		
-		//	TODO:  Create a means to find the banner image for any site.
 		//	Add the banner logo.
-		sb.append("\t<a href=\"http://localhost:8080/sv/?site=nolaria&id=961d30bb-c47b-4908-9762-d5918d477319\"><img float=\"left\" src=\"/"+this.siteName+"/"+DEFAULT_BANNER+"\" width=\"500\"/></a>\n");
-		//sb.append("&nbsp;&nbsp;&nbsp;&nbsp;\n");
-		sb.append("\t<br>\n");
+		String bannerFileName = "/"+this.siteName+"/media/"+this.siteName+"-banner.png";
+		String homeId = this.home.getId();
+		sb.append("\n\t<a href=\"http://localhost:8080/sv/?site="+this.siteName+"&id="+homeId+"\">\n");
+		sb.append("\t\t<img float=\"left\" src=\""+bannerFileName+"\" width=\"500\"/>\n");
+		sb.append("\t</a><br>\n");
 		
 		//	Show full path name of this page.
 		//sb.append("\t<div style=\"font-size: 12pt\"><b>" + this.page.getFullPath() + "</b></div><br>\n");
@@ -222,7 +231,7 @@ public class PageIdFramework {
 		//	Delete function is conditional.  Not displayed on pages that are a folder.
 		if (!this.page.isFolder()) {
 			//System.out.println("The page ["+this.page.getTitle()+"] is a folder.");
-			sb.append("\t\t<a href=\"http://localhost:8080/sv/?site=nolaria&id=961d30bb-c47b-4908-9762-d5918d477319&op=delete&ref="+this.page.getId()+"\"/>\n");
+			sb.append("\t\t<a href=\"http://localhost:8080/sv/?site="+this.siteName+"&id="+this.home.getId()+"&op=delete&ref="+this.page.getId()+"\"/>\n");
 			sb.append("\t\t<button type=\"button\"><b>Delete</b></button></a>\n");
 			sb.append("\t\t<span style=\"margin-left: 42px;\" />");
 		}
@@ -334,6 +343,55 @@ public class PageIdFramework {
 		
 		return sb.toString();
 	}
+	
+	/**
+	 * Get the content for an embeddable set of child page links.
+	 * @return children page content
+	 */
+	public String getChildrenContent() {
+		StringBuffer sb = new StringBuffer();
+		
+		//	Generate the head section.
+		sb.append("<html>\n");
+		sb.append("<head>\n");
+		sb.append("<link rel=\"stylesheet\" href=\"http://localhost:8080/nolaria/green.css\">\n");
+		sb.append("</head>\n");
+		
+		//	Generate the body section.
+		sb.append("<body>\n");
+		sb.append("<table>\n");
+		sb.append("<thead>\n");
+		sb.append("<tr>\n");
+		sb.append("<th>Children of "+this.page.getTitle()+"</th>\n");
+		sb.append("</tr>\n");
+		sb.append("</thead>\n");
+		sb.append("<tbody>\n");
+		
+		String pageFileName = this.page.getFullFileName();
+		String pageDirName = pageFileName.substring(0, pageFileName.length()-".html".length());
+		System.out.println("Current page folder path: "+pageDirName);
+		File pageFile = new File(pageDirName);
+		
+		if (pageFile.isDirectory()) {
+			File[] childFiles = pageFile.listFiles();
+			if (childFiles.length > 0) {
+				for (File f : childFiles) {
+					sb.append("<tr>\n");
+					sb.append("<td>"+f.getName()+"</td>\n");
+					sb.append("</tr>\n");
+				}
+			}
+		}
+		
+		//	Close out the body.
+		sb.append("</tbody>\n");
+		sb.append("</table>\n");
+		sb.append("</body>\n");
+		sb.append("</html>\n");
+
+
+		return sb.toString();
+	}
 
 	/**
 	 * Recurse over the directory tree generating text for each folder level.
@@ -363,9 +421,11 @@ public class PageIdFramework {
 		String[] relParts = this.page.getPath().split("/");
 		
 		//	Convert relative path to a full path.
-		String dirPath = FILE_ROOT + relPath;
+		//String dirPath = FILE_ROOT + relPath;	//	Use the constant in SiteRegistry.
+		String dirPath = SiteRegistry.FILE_ROOT + relPath;
 		if (relPath.length() == 0)
-			dirPath = FILE_ROOT+"/"+this.siteName;
+			//dirPath = FILE_ROOT+"/"+this.siteName;  	//	Use the constant in SiteRegistry.
+			dirPath = SiteRegistry.FILE_ROOT+"/"+this.siteName;
 		File dirFile = new File(dirPath);
 		
 		//System.out.println("Page path: "+relPath);
@@ -400,7 +460,7 @@ public class PageIdFramework {
 		//	Iterate over the files and generate navigation content.
 		for (File f: files) {
 			String name = f.getName();
-			String relFilePath = Util.extractRelativePath(f.getPath());
+			String relFilePath = Util.extractRootPath(f.getPath());
 			relFilePath = relFilePath.replaceAll("\\\\", "/");
 
 			//	Check for and skip style sheets.
@@ -619,7 +679,8 @@ public class PageIdFramework {
 		*/
 		
 		//	Make a folder to hold the new page, if needed.
-		String dirName = FILE_ROOT+"\\"+this.siteName;
+		//String dirName = FILE_ROOT+"\\"+this.siteName;
+		String dirName = SiteRegistry.FILE_ROOT+"\\"+this.siteName;
 		if (path.length() > 0)
 			dirName += "\\" + path + "\\" + node;
 		else

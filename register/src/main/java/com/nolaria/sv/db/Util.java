@@ -18,7 +18,7 @@ import java.io.IOException;
  *
  */
 public class Util {
-	public static String FILE_ROOT = "D:\\apache-tomcat-9.0.40\\webapps";
+	//public static String FILE_ROOT = "D:\\apache-tomcat-9.0.40\\webapps";
 
 	
 	/**
@@ -42,13 +42,40 @@ public class Util {
 	}
 
 	/**
-	 * Extract the relative path from a full path.
+	 * Get a full file path without the file root.
+	 * Note:  This used to be called extractRelativePath(), which it didn't.
 	 * 
 	 * @param path
-	 * @return relative path
+	 * @return full path from the site root
 	 */
-	public static String extractRelativePath (String path) {
-		return path.substring(FILE_ROOT.length());
+	public static String extractRootPath (String path) {
+		return path.substring(SiteRegistry.FILE_ROOT.length());
+	}
+	
+	/**
+	 * Given a file name with a full path, return the relative path from the site name node to the file node.
+	 * 
+	 * Example 1: D:/apache-tomcat-9.0.40/webapps/test/foo/bar/page.html
+	 * Returns: foo/bar
+	 * 
+	 * Example 2: D:/apache-tomcat-9.0.40/webapps/test/page.html
+	 * Returns an empty string.
+	 * 
+	 * @param siteName
+	 * @param fileName
+	 * @return
+	 */
+	public static String extractRelativePath(String siteName, String fileName) {
+		String fromRootPageName = fileName.substring(fileName.indexOf(siteName)+siteName.length()+1, fileName.length());
+		String[] parts = fromRootPageName.split("/");
+		String relPath = "";
+		if (parts.length > 1) {
+			for (int i=0; i<parts.length-1; i++)
+				relPath += "/" + parts[i];
+		}
+		if (relPath.length() > 1)
+			relPath = relPath.substring(1, relPath.length());	// Remove first slash.
+		return relPath;
 	}
 	
 	/**
@@ -72,7 +99,7 @@ public class Util {
 	 * @return file contents
 	 */
 	public static String fetchContents(String reference) {
-		String fn = FILE_ROOT+reference;
+		String fn = SiteRegistry.FILE_ROOT+reference;
 		StringBuffer sb = new StringBuffer();
 		
 		FileReader in = null;
@@ -424,4 +451,39 @@ public class Util {
 		return capTitle;
 	}
 	
+	/**	
+	 * Search the content from the current position for a string given in goal and return it's offset.
+	 * 
+	 * Ex.  Util.lookAhead("<html> ...", 666, "<img")
+	 *      <a href="image-ref.html">[<img] src="image-ref">...
+	 *      ^ currPos                 ^ frame at newPos
+	 *      
+	 * @param content
+	 * @param currPos
+	 * @param goal
+	 * @return
+	 */
+	public static int lookAhead(String content, int currPos, String goal) {
+		int newPos = 0;
+		int contentLen = content.length();
+		int goalLen = goal.length();
+		
+		while ( (newPos <= contentLen) && (newPos <= currPos+500) ) {
+			//	Exit if we reach the end of the content passed.
+			if (newPos == contentLen)
+				return -1;
+			
+			//	Exit if we've searched long enough.
+			if (newPos == currPos+500)
+				return -1;
+			
+			//	Snapshot the start of the newPos.
+			String frame = content.substring(newPos, newPos+goalLen);
+			
+			//	if we have found what we are looking for, then return it
+			if (frame.compareTo(goal) == 0)
+				break;
+		}
+		return newPos;
+	}
 }
