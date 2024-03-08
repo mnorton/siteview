@@ -45,33 +45,14 @@ public class Converter {
 	//	Fix types supported.  Add a new type when a fix-in-place pass is needed.
 	public static enum FixType {BASIC, IMAGES, LINKS, UNKNOWN};
 	
-	//public static final String STYLE_SHEET_PATH = "d:\\dev\\siteview\\shared\\styles\\green.css";
-
 	// This is where all of the source pages live, to be converted.
 	public static final String TAKEOUT_DIR = "D:/Google-Download/Takeout/ClassicSites";
 
-	// Change these to be the names of the source and target site.
-	public static final String SRC_SITE = "nolariaplanes";
-	//public static final String SRC_TITLE = " - nolaria-planes";
-	public static final String TARGET_SITE = "planes";
-
-	// Derived file paths and URLs based on the site name above.
-	//public static final String HOST = "http://localhost:8080";
-	//public static final String TOMCAT = "D:/apache-tomcat-9.0.40";
-	//public static final String ROOT_PATH = TOMCAT + "/webapps";
-	//public static final String STYLE_SHEET_URL = HOST + "/" + TARGET_SITE + "/" + TARGET_SITE + ".css";
-
-	//public static final String MEDIA_DIR_NAME = "media";
-	
-	//public static final String TEST_FILE_SRC = "D:\\Google-Download\\Takeout\\ClassicSites\\nolariaplanes\\home.html";
-	//public static final String TEST_FILE_DEST = "D:\\apache-tomcat-9.0.40\\webapps\\planes\\home.html";
-	
 	//	Registries
 	public SiteRegistry siteRegistery = new SiteRegistry();
 	public PageRegistry pageRegistry = new PageRegistry();
 	
 	//	Instance variables.
-	//public String siteName = null;			//	Extracted from the sourceRootName.
 	public int fileCount = 0;
 
 	/**
@@ -141,11 +122,8 @@ public class Converter {
 				System.out.println("\nFix start time: "+LocalTime.now());
 				app.fixInPlace(site);
 				System.out.println("\nFix end time: "+LocalTime.now());
-			}
-			
+			}	
 		}
-
-		
 	}
 	
 	/**
@@ -256,7 +234,7 @@ public class Converter {
 		PageId tempPage = new PageId(uuid, site.getName(), title, site.getName()+".html", path, false);
 		
 		//	Gather the document parts. 
-		String headText = this.getHeaderText(tempPage);
+		String headText = this.getHeaderText(site, tempPage);
 		String bodyText = this.extractBody(srcContent);
 		
 		//	Fixes applied to content body only.
@@ -366,116 +344,6 @@ public class Converter {
 	/****************************************************************************
 	 * RECURSIVE TREE WALKERS
 	 ****************************************************************************/
-	
-	/**
-	 * @deprecated
-	 * This version of convert is used to convert a whole file system starting from
-	 * a given root web page. It works as follows:
-	 * <ol>
-	 * <li>Convert the file passed into target directory given by global.</li>
-	 * <li>Determine if a corresponding src directory exists.</li>
-	 * <li>If so, iterate over all files in that directory, recursing on each.
-	 * </ol>
-	 * 
-	 * WARNING: This method uses recursion to traverse a file system tree.
-	 * TODO:  Update to use fixContent()
-	 * 
-	 * @param depth         - current depth of the tree walk. Can be used for
-	 *                      indentation if needed.
-	 * @param filePath      - full file path to the current file being processed.
-	 * @param relTargetPath - directory path relative to the root tomcat dir. No
-	 *                      leading or following slashes.
-	 * @throws IOException
-	 */
-	public void recursiveWalkOld(int depth, String filePath, String relTargetPath) throws IOException {
-
-		File srcNode = new File(filePath);
-		String srcName = srcNode.getName();
-
-		//System.out.println(indent(depth) + "Copy and Convert: " + srcName + " to: " + relTargetPath);
-
-		String[] sParts = srcName.split("\\.");
-		String correspondingDirName = "";
-		if (sParts.length == 2) {
-			correspondingDirName = sParts[0];
-			//System.out.println(indent(depth) + "Corresponding directory name: " + correspondingDirName);
-		}
-		else {
-			//System.out.println(indent(depth) + "Unable to split source file name: " + srcName);
-			return;
-		}
-
-		if (srcNode.isFile() == true) {
-			FileType type = getFileType(filePath);
-			//System.out.println(indent(depth) + "File Type: " + type);
-
-			// Handle the file based on file type.
-			switch (type) {
-			case WEB:
-				// Convert and copy the web page.
-				System.out.println(Util.indent(depth) + "Copy and Convert Page: " + srcName + " to: " + relTargetPath);
-
-				this.convertAndCopy (filePath, relTargetPath);
-				this.fileCount++;
-
-				// See if there is a corresponding directory for the web page in the current
-				// directory.
-				String[] parts = filePath.split("\\.");
-				String correspondingDirPath = null;
-				if (parts.length == 2) {
-					correspondingDirPath = parts[0];
-
-					File correspondingDirFile = new File(correspondingDirPath);
-					if (correspondingDirFile.isDirectory()) {
-						// Corresponding directory was found.
-						File[] files = correspondingDirFile.listFiles();
-						// System.out.println(indent(depth)+"Files to handle: "+files.length);
-						// System.out.println(indent(depth)+relTargetPath+FileSep+correspondingDirName);
-						for (int j = 0; j < files.length; j++) {
-							File file = files[j];
-							// Recurse on files in the corresponding directory.
-							recursiveWalkOld(depth + 1, file.getAbsolutePath(),
-									relTargetPath + FileSep + correspondingDirName);
-						}
-					}
-					// else
-					// System.out.println(indent(depth)+"No corresponding directory:
-					// "+correspondingDirName);
-				} 
-				else {
-					//System.out.println(indent(depth) + "Unable to split source file path: " + filePath);
-					return;
-				}
-				break;
-
-			case TEXT:
-			case IMAGE:
-			case XML:
-			case JSON:
-			case AUDIO:
-			case VIDEO:
-				//System.out.println (indent(depth)+"Copy image: "+srcName+" to: "+relTargetPath);
-				// copyFile (filePath, relTargetPath);
-				// copyFile (filePath, rootName+FileSep+"media");
-				String targetFileName = SiteRegistry.FILE_ROOT+"\\"+TARGET_SITE+"\\"+SiteRegistry.MEDIA_DIR_NAME+"\\"+srcName;
-				System.out.println(Util.indent(depth)+"Copy image from "+filePath+" to: "+targetFileName);
-				Util.copyFile(filePath, targetFileName);
-				
-				//System.out.println (indent(depth)+"Copy image relative: "+relTargetPath+" name: "+srcName+" media: "+MEDIA_DIR_NAME);				
-				//////this.copyFileRelative (filePath, rootName, MEDIA_DIR_NAME);
-				//this.copyFileRelative (relTargetPath, srcName, MEDIA_DIR_NAME);
-				this.fileCount++;
-
-				break;
-
-			default:
-				System.out.println(Util.indent(depth) + "Unknown file type: " + type + " for " + srcName);
-				return;
-			}
-		} 
-		else
-			System.out.println(Util.indent(depth) + "Node to process is not a file:  " + srcNode.getName());
-	}
 	
 	/**
 	 * Recursively walk a source file tree and convert files found.  Folders in the destination
@@ -683,7 +551,7 @@ public class Converter {
 		PageId tempPage = new PageId(uuid, site.getName(), title, pageFileName, pagePath, false);
 		
 		//	Gather the document parts. 
-		String headText = this.getHeaderText(tempPage);
+		String headText = this.getHeaderText(site, tempPage);
 		String bodyText = this.extractBody(srcContent);
 		
 		//	Fixes are applied to content body only.
@@ -738,6 +606,8 @@ public class Converter {
 		else
 			destName = SiteRegistry.FILE_ROOT +FileSep + site + FileSep +  SiteRegistry.MEDIA_DIR_NAME + FileSep + mediaName;
 
+		//	Handled the [v6 file name case.
+		destName.replaceAll("\\[v6", "");
 		
 		//System.out.println(Util.tabber(depth)+"Copy media page from: "+srcName);
 		//System.out.println(Util.tabber(depth)+"Category: "+categoryName);
@@ -752,171 +622,6 @@ public class Converter {
 		}
 	}
 
-	/**
-	 * @deprecated This is the old way of doing it.
-	 * Takes a full path to a source web page, converts it, and copies to a target
-	 * directory.
-	 * 
-	 * @param srcPath       - full source file.
-	 * @param relTargetPath - target directory relative to Tomcat root.
-	 * @throws IOException
-	 */
-	public void convertAndCopy(String srcPath, String relTargetPath) throws IOException {
-		File srcFile = new File(srcPath);
-		String srcName = srcFile.getName();
-		String srcContent = null;
-
-		//System.out.println("convertAndCopy: "+srcName+" to: "+relTargetPath);
-
-		/* Check for the existence of the relative target directory in Tomcat. */
-		String rootDirPath = SiteRegistry.FILE_ROOT + FileSep + relTargetPath;
-		File rootDir = new File(rootDirPath);
-		if (!rootDir.exists()) {
-			// System.out.println("Creating directory: "+rootDirPath);
-			rootDir.mkdir();
-		} else {
-			/* This is where a recursive delete could go. */
-			// System.out.println("Directory already exists: "+rootDirPath);
-		}
-
-		/* Load source file into memory. */
-		BufferedReader br = new BufferedReader(new FileReader(srcFile));
-		try {
-			StringBuilder sb = new StringBuilder();
-			String line = br.readLine();
-
-			while (line != null) {
-				sb.append(line);
-				sb.append(System.lineSeparator());
-				line = br.readLine();
-			}
-			srcContent = sb.toString();
-		} finally {
-			br.close();
-		}
-
-		StringBuffer sb = new StringBuffer();
-
-		// Extract title and name.
-		Map<String, String> properties = extractNames(srcContent);
-		properties.put("name", srcName.substring(0, srcName.indexOf(".")));
-		
-		// System.out.println("Page title: ["+properties.get("title")+"] name:
-		// ["+properties.get("name")+"]");
-
-		// Add header text, if any.
-		sb.append(headerText(properties));
-
-		// Convert the content.
-		sb.append(convert(srcContent));
-
-		// Add footer text, if any.
-		sb.append(footerText(properties));
-
-		String targetContent = sb.toString();
-
-		/* Write the extracted content to target file. */
-		String tgFilePath = SiteRegistry.FILE_ROOT + FileSep + relTargetPath + FileSep + srcName; // Uses page node now.
-		File tgFile = new File(tgFilePath);
-		System.out.println("Target file to write: " + tgFilePath + " Exists:" + tgFile.exists());
-		if (!tgFile.exists()) {
-			// System.out.println("Target file to create: "+tgFilePath);
-			tgFile.createNewFile();
-		}
-		PrintWriter pw = new PrintWriter(tgFile);
-		pw.print(targetContent);
-		pw.close();
-	}
-
-	/**
-	 * @deprecated - Nothing calls this, currently.
-	 * Takes a full path to a file and copies to a target directory.
-	 * 
-	 * @param srcPath       to source file.
-	 * @param relTargetPath - target directory relative to Tomcat root.
-	 * @param subDirectory  - usually the media folder, but could be another
-	 *                      sub-folder.
-	 * @throws IOException
-	 */
-	public void copyFileRelativeOld(String srcPath, String relTargetPath, String subDirectory) throws IOException {
-		File srcFile = new File(srcPath);
-		String srcName = srcFile.getName();
-		String targetDir = SiteRegistry.FILE_ROOT + FileSep + relTargetPath + FileSep + subDirectory;
-		File targetDirFile = new File(targetDir);
-		if (!targetDirFile.exists())
-			targetDirFile.mkdir();
-		// String fullTargetPath = rootPath+FileSep+relTargetPath+FileSep+srcName; //
-		// Uses media node now.
-		String fullTargetPath = SiteRegistry.FILE_ROOT + FileSep + TARGET_SITE + FileSep + subDirectory + FileSep + srcName;
-
-		File tgFile = new File(fullTargetPath);
-		// System.out.println("copyFile from "+srcName+" to "+fullTargetPath);
-
-		// Check for duplicate media file name.
-		if (tgFile.exists()) {
-			System.out.println("WARNING:  File " + srcName + " already exists in the media directory!");
-			return;
-		}
-
-		// System.out.println("copyFile: "+srcName+" to: "+relTargetPath);
-
-		FileInputStream in = null;
-		FileOutputStream out = null;
-		try {
-			in = new FileInputStream(srcFile);
-			out = new FileOutputStream(tgFile);
-
-			// Copy binary data from in to out.
-			int datum = 0;
-			while ((datum = in.read()) != -1) {
-				out.write(datum);
-			}
-		} finally {
-			// Close all files.
-			if (in != null)
-				in.close();
-			if (out != null)
-				out.close();
-		}
-	}
-	
-	/****************************************************************************
-	 * CONTENT METHODS
-	 ****************************************************************************/
-
-	/**
-	 * @deprecated in favor of convertPage()
-	 * The standard converter method.
-	 * 
-	 * Currently, this uses a static file system path to the set of pages to be
-	 * converted. Converted documents are written into the webapp folder of Tomcat
-	 * using the TOMCAT_HOME environment variable. Any existing pages in the target
-	 * location are deleted.
-	 * 
-	 * @param content - the full source file content
-	 * @throws IOException;
-	 */
-	public String convert(String content) throws IOException {
-		String start = "<div id=\"sites-canvas-main-content\">";
-		String end = "<div id=\"sites-canvas-bottom-panel\">";
-
-		/* Extract content. */
-		int startOffset = content.indexOf(start);
-		int endOffset = content.indexOf(end);
-
-		/* Extract content and fix it up. */
-		String targetContent = content.substring(startOffset, endOffset);
-		targetContent = targetContent.replace("/>", "/>\n"); // Insert return after closing element.
-		targetContent = targetContent.replace("</", "\n</"); // Insert return after closing element.
-		// System.out.println("First nbsp: "+targetContent.indexOf("Â"));
-		targetContent = targetContent.replace("Â", "&nbsp;"); // Convert non-breaking spaces.
-
-		//targetContent = this.fixLinks(targetContent);
-		//targetContent = this.fixImages(targetContent);
-
-		// return targetContent;
-		return content;		//	I added this for safety until this can be removed.
-	}
 	
 	/****************************************************************************
 	 * FIX METHODS
@@ -1079,112 +784,6 @@ public class Converter {
 
 
 	/**
-	 * @deprecated
-	 * 
-	 * Copy image files to media category folder.
-	 * Fix all image references in an IMG tag.<br>
-	 * <br>
-	 * Algorithm:<br>
-	 * 		1. Scan for the string "<img".<br>
-	 * 		2. When found, extract the whole IMG element.<br>
-	 * 		3. TODO Extract source image file location, media category, and image file name.
-	 * 		4. TODO Copy media file to it's category folder.
-	 * 		5. Fix the media reference in the src attribute.<br>
-	 * 		6. Append the fixed string to the string buffer.<br>
-	 * 		7. Advance the index by the length of the fixed IMG element.<br>
-	 * 
-	 * @param content
-	 * @return fixed content string
-	 */
-	private String fixImages(String content) {
-		StringBuffer fixedContent = new StringBuffer();
-
-		// Scan the page for IMG elements.
-		for (int i = 0; i < content.length(); i++) {
-			char currentChar = content.charAt(i);
-			
-			//	TODO: Scan for "<a href", the start of a View Full Image structure.
-
-			//	See if we are at the start of an image tag.
-			if ((Character.toLowerCase(content.charAt(i)) == '<')
-					&& (Character.toLowerCase(content.charAt(i + 1)) == 'i')
-					&& (Character.toLowerCase(content.charAt(i + 2)) == 'm')
-					&& (Character.toLowerCase(content.charAt(i + 3)) == 'g')) {
-
-				System.out.println("Image found at offset "+i);
-
-				// Extract the IMG element.
-				StringBuffer imageBuf = new StringBuffer();
-
-				// Look for the XML tag close element (>), and avoid running off the end of the file.
-				int j = i;
-				while ((Character.toLowerCase(content.charAt(j)) != '>') && (j < content.length())) { 
-					imageBuf.append(content.charAt(j));
-					j++;
-				}
-				imageBuf.append('>');
-				String imageElement = imageBuf.toString();
-
-				System.out.println("---------- Image element:");
-				System.out.println("---------- "+imageElement);
-
-				// Extract the src parameter.
-				int srcOff = imageElement.indexOf("src=");
-				srcOff = srcOff + "src=\"".length(); // Skip over the src parameter to the start of the value.
-				String tempStr = imageElement.substring(srcOff, imageElement.length());
-				int quoteOff = tempStr.indexOf("\""); // Find the closing quote.
-				String srcParameter = imageElement.substring(srcOff, srcOff + quoteOff); // Extract the value of the src param.
-				System.out.println("---------- srcParameter value: "+srcParameter);
-
-				// Create the reference fix. The URL prefix is added to make the images viewable
-				// in BlueGriffin.
-				int slashOff = srcParameter.indexOf("/");
-				
-				//	TODO:  Fix hard coded site name.
-				//String fixedRef = HOST + FileSep + TARGET_SITE + "/" + SiteRegistry.MEDIA_DIR_NAME + "/"
-				String fixedRef = SiteRegistry.LOCAL_HOST + FileSep + "nolaria" + "/" + SiteRegistry.MEDIA_DIR_NAME + "/"
-						+ srcParameter.substring(slashOff + 1, srcParameter.length());
-				// System.out.println("---------- Fixed Ref: "+fixedRef);
-
-				// Assemble the parts to make the fix.
-				String firstPart = imageElement.substring(0, srcOff);
-				String middlePart = fixedRef;
-				String endPart = imageElement.substring(imageElement.indexOf(srcParameter) + srcParameter.length(),
-						imageElement.length());
-				String repairedElement = firstPart + middlePart + endPart;
-
-				// System.out.println("---------- firstPart: "+firstPart);
-				// System.out.println("---------- middlePart: "+middlePart);
-				// System.out.println("---------- endPart: "+endPart);
-
-				// System.out.println("---------- Repaired image element:");
-				// System.out.println("---------- "+repairedElement);
-
-				// Append the fixed image to the fixed content.
-				fixedContent.append(repairedElement);
-
-				// Advance the character pointer past the old image element.
-				i += imageElement.length();
-			} 
-			else {
-				// Since this is not the start of an image element, just append the current
-				// character.
-				fixedContent.append(currentChar);
-			}
-
-		}
-
-		// System.out.println("----------");
-		// System.out.println(fixedContent);
-		// System.out.println("----------");
-
-		// Don't return the converted content until we know it works.
-		return fixedContent.toString();
-
-		// return content;
-	}
-
-	/**
 	 * Fix images in a page by scanning for media file references by replacing
 	 * relative file references with a URL to an image in the media folder with optional category.
 	 * 
@@ -1221,6 +820,10 @@ public class Converter {
 			if (r.indexOf(mediaRoot) == 0)
 				continue;
 			
+			//	Check for the [v6 case and skip it.
+			if (r.indexOf("[") != -1)
+				continue;
+			
 			String[] parts = r.split("/");
 			String mediaFileName = parts[parts.length-1];
 			
@@ -1229,7 +832,7 @@ public class Converter {
 			//	Check for the JavaScript void case.  This results in a broken link, but at least it's not to a script.
 			if (mediaFileName.compareTo("javascript:void(0);") == 0)
 				mediaFileName = "javascript-void.png";
-					
+			
 			//	Apply the fix
 			String mediaTarget = "/"+siteName+"/"+SiteRegistry.MEDIA_DIR_NAME+"/"+mediaFileName;
 			if (category.length() > 0)
@@ -1239,135 +842,6 @@ public class Converter {
 		
 		//	Save the fixed content out to the page file.
 		Util.saveFile(fixedContent, pageName);
-	}
-
-	
-	private void fixLinkRefs(int depth, String siteName, String pageName) {
-		if ( (siteName == null) || (pageName == null) ) {
-			System.out.println("fixImagesbyRefs: null parameters were passed.");
-			return;
-		}
-		
-		//	Load the page content.  By default, the fixed content is the same.
-		String content = Util.loadFile(pageName);
-		if (content == null) {
-			System.out.println(Util.tabber(depth)+"Unable to load page contents for: "+pageName);
-			return;
-		}
-		String fixedContent = content;
-		
-		//	Extract the references to page files.
-		List<String> refs = this.extractPageRefs(content);
-		
-		//	Extract the relative path for this page.
-		String relPath = Util.extractRelativePath(siteName, pageName);
-		//System.out.println(Util.tabber(depth)+"Relative path: "+relPath);
-		
-		//	Iterate over each of the references found to fix them.
-		for (String r : refs) {
-			//System.out.println(Util.tabber(depth)+"Original Reference: "+r);
-			
-			//	Check for previously fixed references.  Prevent over fixing.
-			if (r.indexOf("localhost") == 0)
-				continue;
-			
-			//	Check for external links that leave the SV site.
-			if (r.indexOf("http") == 0)
-				continue;
-			
-			//	Get the file name referenced.
-			String[] parts = r.split("/");
-			String file = parts[parts.length-1];
-			
-			//	If we have folder traversal characters, adjust the relative path.
-			parts = r.split("\\.\\.");
-			String newRelPath = "";
-			int traversalCt = parts.length-1;
-			if (traversalCt > 0) {
-				parts = relPath.split("/");
-				for (int i=0; i<parts.length-traversalCt; i++)
-					newRelPath += FileSep + parts[i];
-				//System.out.println(Util.tabber(depth)+"New relative path: "+newRelPath);
-			}
-			else
-				newRelPath = relPath;
-			
-			//	Move path nodes from the original reference (if any) to the relative path.
-			parts = r.split("/");
-			for (int i=0; i<parts.length-1; i++) {
-				//	Skip traversal nodes.
-				if (parts[i].compareTo("..") == 0)
-					continue;
-				newRelPath += FileSep + parts[i];
-			}
-			
-			//	Trim of leading file separators, if present.
-			if (newRelPath.charAt(0) == '/')
-				newRelPath = newRelPath.substring(1, newRelPath.length());
-			
-			//System.out.println(Util.tabber(depth)+"Find record using "+ siteName + " - " + newRelPath + " - " + file);
-			PageId page = null;
-			try {
-				page = this.pageRegistry.getPageByFile(siteName, newRelPath, file);
-			}
-			catch (PageException pg) {
-				continue;
-			}
-			
-			//  If a page wasn't found, we can't fix the reference, so continue on to the next one.
-			if (page == null) {
-				System.out.println(Util.tabber(depth)+"Unable to get record for "+ r);
-				continue;
-			}
-			
-			String siteViewRef = page.getUrl();
-			System.out.println(Util.tabber(depth)+"Fixed reference: "+siteViewRef);
-
-			//	Apply the fix
-			fixedContent = fixedContent.replaceAll(r, siteViewRef);
-		}
-		
-		//	Save the fixed content out to the page file.
-		Util.saveFile(fixedContent, pageName);
-	}
-	
-	/**
-	 * @deprecated
-	 * This is the original, old code based on the PageRef model.
-	 * 
-	 * @param content
-	 * @return
-	 */
-	private String fixLinksScan(String content) {
-		StringBuffer sb = new StringBuffer();
-		
-		String hrefStart = "<a href=\"";
-		String hrefEnd = "\">";
-		
-		for (int i = 0; i < content.length(); i++) {
-			char ch = content.charAt(i);
-			String remainingContent = content.substring(i);
-
-			// Check for an image.
-			if (checkForTag(remainingContent, hrefStart)) {
-				// Find the end of the HREF.
-				int end = remainingContent.indexOf(hrefEnd);
-				String href = remainingContent.substring(hrefStart.length(), end);
-				//System.out.println("Link HREF found: "+href);
-				
-				String link = "<a target=\"_parent\" href=\"/sv?ref="+href+"&site="+TARGET_SITE+">";
-				//System.out.println("\tReplacement link:" + link);
-				
-				sb.append(link);
-				i += hrefStart.length();	// Skip over the current link start.
-			}
-
-			// Otherwise just copy the current character.
-			else {
-				sb.append(ch);
-			}
-		}
-		return sb.toString();
 	}
 
 
@@ -1451,8 +925,40 @@ public class Converter {
 		Util.saveFile(fixedContent, pageName);
 	}
 	
+	/**
+	 * A full anchor element is passed in srcAnchor.  The HREF and link text are parsed out by
+	 * linearly walking the srcAnchor string using the following algorithm:
+	 * 
+	 *   1: Scan the source anchor string and parse out href and link text.
+	 *   2: Skip to the start of an HEF in the source content.
+	 *   3: Skip over the HREF parameter name.
+	 *   4: Collect the HERF value.
+	 *   5: Skip to the end of the anchor tag.
+	 *   6: Skip over the end of the anchor tag.
+	 *   7: Collect the link text.
+	 * 
+	 * This results in the HREF in srcHrefBuf (srcHref) and the link text in linkTextBuf (linkText).
+	 * The HREF is then used to calculated the relative path to this page.
+	 * Using site name, relative path, and the page file name, the page is looked up in the Page Registry
+	 * If found, it is used to create a PageId URL, which is used to fix the HREF.
+	 * If not found, the original source anchor is returned, which will result in a broken link to be fixed
+	 * manually later.
+	 * 
+	 * In tests, a case came up where the anchor passed didn't contain an HREF.  This is legitimate in HTHML
+	 * and is used to create a "page anchor".  A test was added for this case and the srcAnchor returned.
+	 * 
+	 * @param depth
+	 * @param siteName
+	 * @param pageName
+	 * @param srcAnchor
+	 * @return
+	 */
 	private String fixAnchor(int depth, String siteName, String pageName, String srcAnchor) {
 		String hrefStart = "href=\"";
+		
+		//	Check for an anchor with no HREF.  Pathological, but it does happen.
+		if (srcAnchor.indexOf(hrefStart) == -1)
+			return srcAnchor;
 		
 		StringBuffer srcHrefBuf = new StringBuffer();		//	Collects the source HREF string.
 		StringBuffer linkTextBuf = new StringBuffer();	//	Collects the link text string.
@@ -1462,18 +968,18 @@ public class Converter {
 		char ch = srcAnchor.charAt(i);
 		String remainingContent = srcAnchor.substring(i);
 		
-		//	2: Skip to the start of the HREF property.
+		//	2: Skip to the start of an HEF in the source content.
 		while (i<srcAnchor.length() && !checkForTag(remainingContent, hrefStart)) {
 			i++;
 			ch = srcAnchor.charAt(i);
-			remainingContent = srcAnchor.substring(i);			
+			remainingContent = srcAnchor.substring(i);
 		}
 		
 		//	3: Skip over the HREF parameter name.
 		i += hrefStart.length();
 		ch = srcAnchor.charAt(i);
 		
-		//	4: Collect the HERF value;
+		//	4: Collect the HERF value.
 		while (i<srcAnchor.length() && ch != '"') {
 			srcHrefBuf.append(ch);
 			i++;
@@ -1503,6 +1009,7 @@ public class Converter {
 		String srcHref = srcHrefBuf.toString().trim();
 		String linkText = linkTextBuf.toString().trim();
 		
+		//	Proposed simple fix, path is not adjusted.
 		String fixedLink = "<a href=\""+srcHref+"\" target=\"_blank\" >"+linkText+"</a>\n";   
 		
 		//	Check for previously fixed references.  Prevent over fixing.
@@ -1632,165 +1139,6 @@ public class Converter {
 	/****************************************************************************
 	 * EXTRACT METHODS
 	 ****************************************************************************/
-
-	/**
-	 * @deprecated in favor of extractNames(), below
-	 * 
-	 * Google Sites had both a page title and name. In most cases, these are the
-	 * same, but pages may have a different title than name. This method extracts
-	 * the title and name from meta tags in the source content (before conversion).
-	 * 
-	 * Examples:
-	 * 
-	 * <meta name="title" content="Phase_3_Project" />
-	 * <meta itemprop="name" content="Phase_3_Project" />
-	 * 
-	 * NOTE: titles and names were coming up with a suffix, such as"- nolaria-d".
-	 * Changed code to truncate at the first dash. However, a title might contain a
-	 * dash, which could screw up the name.
-	 * 
-	 * @param content
-	 * @return Map of title, name.
-	 */
-	public Map<String, String> extractNamesOld(String content) {
-		Map<String, String> names = new HashMap<String, String>();
-
-		// Extract the page title
-		int titleOff = content.indexOf("<meta name=\"title\"");
-		// System.out.println("Title string: "+content.substring(titleOff,
-		// titleOff+60));
-
-		if (titleOff != -1) {
-
-			// Scan for third quote mark.
-			for (int i = 0; i < 3; i++) {
-				while (content.charAt(titleOff) != '\"') {
-					// System.out.println("Scan position: "+content.substring(titleOff,
-					// titleOff+60));
-
-					// Check for a close tag character and break if found.
-					if (content.charAt(titleOff) == '>')
-						break;
-
-					// Otherwise, keep scanning.
-					else {
-						titleOff++;
-					}
-					// Check for a close tag character and break if found.
-					if (content.charAt(titleOff) == '>')
-						break;
-				}
-				titleOff++; // Skip over the quote mark.
-			}
-			// System.out.println("Title string: "+content.substring(titleOff,
-			// titleOff+50));
-			int endQuoteOff = titleOff;
-			while (content.charAt(endQuoteOff) != '-') {
-				if (content.charAt(endQuoteOff) == '>') {
-					endQuoteOff = titleOff;
-					break;
-				}
-				endQuoteOff++;
-			}
-
-			// TODO: Check for a single character title here and fix it from the page name.
-
-			if (endQuoteOff - titleOff > 0) {
-				String title = content.substring(titleOff, endQuoteOff - 1);
-				names.put("title", title);
-			} else {
-				System.out.println("Final quote was not found: " + (endQuoteOff - titleOff));
-			}
-		}
-
-		// Extract the page name
-		int nameOff = content.indexOf("<meta itemprop=\"name\"");
-		if (nameOff != -1) {
-
-			// Scan for third quote mark.
-			for (int i = 0; i < 3; i++) {
-				while (content.charAt(nameOff) != '\"') {
-					// System.out.println("Scan position: "+content.substring(nameOff,
-					// titleOff+60));
-
-					// Check for a close tag character and break if found.
-					if (content.charAt(nameOff) == '>')
-						break;
-
-					// Otherwise, keep scanning.
-					else {
-						nameOff++;
-					}
-					// Check for a close tag character and break if found.
-					if (content.charAt(nameOff) == '>')
-						break;
-				}
-				nameOff++;
-			}
-			// System.out.println("Name string: "+content.substring(nameOff, nameOff+50));
-			int endQuoteOff = nameOff;
-			while (content.charAt(endQuoteOff) != '-') {
-				if (content.charAt(endQuoteOff) == '>') {
-					endQuoteOff = nameOff;
-					break;
-				}
-				endQuoteOff++;
-			}
-			if (endQuoteOff - nameOff > 0) {
-				String name = content.substring(nameOff, endQuoteOff - 1);
-				names.put("name", name);
-			} else {
-				System.out.println("Final quote was not found: " + (endQuoteOff - nameOff));
-			}
-		}
-
-		return names;
-	}
-	
-	/**
-	 * @deprecated in favor of extractTitle(), below
-	 * Extracts the page title and name from the <title> element in the source content header.
-	 * Page name is the same as the original title.
-	 * New page title converts dashes to spaces and capitalizes words.
-	 * 
-	 * Examples to handle:
-	 * 	1. place (no dashes) ==> Place
-	 * 	2. place-1 (single dash) ==> Place 1
-	 * 	3. place--1 (two dashes) ==> Place 1
-	 * 	4. place - 1 (space dash space) ==> Place - 1
-	 * 	5. place---1 (three dashers) ==> Place - 1
-	 * 
-	 * @param content of page
-	 * @return a map containing title and name entries.
-	 */
-	public Map<String, String> extractNames(String content) {
-		Map<String, String> properties = new HashMap<String, String>();
-
-		//	Extract the name from the title element.
-		int titleStart = content.indexOf("<title>");
-		int titleEnd = content.indexOf("</title>");
-		String title = content.substring(titleStart+"<title>".length(), titleEnd);
-		System.out.print("Raw page title: "+title);
-
-		//	Strip off the site title.
-		//title = title.replaceAll(SRC_TITLE, "");
-
-		//	Fix dashes to make words in the title.
-		title = title.replaceAll(" - ", " ");
-		title = title.replaceAll("---", " ");
-		title = title.replaceAll("--", " ");
-		title = title.replaceAll("-", " ");
-		
-		
-		System.out.println(" == Final Title: "+title);
-
-		//System.out.println("Final title: "+capTitle);
-
-		title = Util.capitalize(title);
-		properties.put("title", title);
-		
-		return properties;
-	}
 
 	/**
 	 * Extracts the page title and name from the <title> element in the source content header.
@@ -1944,50 +1292,6 @@ public class Converter {
 		return refs;
 	}
 	
-	/**
-	 * Scam the content provided for references to page files, filtered by a file type of WEB.
-	 * 
-	 * @param content
-	 * @return List of media reference strings.
-	 */
-	private List<String> extractPageRefs (String content) {
-		List<String> refs = new Vector<String>();
-
-		//	Tag constants.
-		String ANCHOR = "<a";
-		String HREF = "href=\"";
-				
-		int tempOff = 0;
-		int refStart = 0;
-		int refEnd = 0;
-		String refString = null;
-		
-		//	Scan for HREFs.
-		while (tempOff != -1) {
-			tempOff = content.indexOf(ANCHOR,tempOff);
-			if (tempOff != -1) {
-				//	Advance the offset past the currently found instance.
-				tempOff += ANCHOR.length();
-				
-				//	Extract the reference string.
-				refStart = content.indexOf(HREF, tempOff)+HREF.length();
-				refEnd = content.indexOf("\"", refStart);
-				refString = content.substring(refStart, refEnd);
-				
-				//	Filter by file type and add to the list of reference strings.
-				FileType type = this.getFileType(refString);
-				if (type == FileType.WEB)
-					refs.add(refString);
-			}
-			else {
-				tempOff = -1;	//	Signal the end of the scan.
-				break;
-			}
-		}
-		
-		return refs;
-	}
-	
 	
 	/**
 	 * Extract a media file category from a full path source file name.
@@ -2030,81 +1334,6 @@ public class Converter {
 	/****************************************************************************
 	 * UTILITY METHODS
 	 ****************************************************************************/
-
-	/**
-	 * @deprecated in favor of Util.updateHeaderInfo()
-	 * Generate header text to be included in output file. Text generation is
-	 * dependent on the contentOnly flag.
-	 * 
-	 * @param properties
-	 * @return header text
-	 */
-	public String headerText(Map<String, String> properties) {
-		StringBuffer sb = new StringBuffer();
-		String title = properties.get("title");
-		String name = properties.get("name");
-		String pid = UUID.randomUUID().toString();
-
-		// Generate text for a content only output.
-		if (ContentOnly) {
-			// Add header block with title and meta tags.
-			sb.append("<!DOCTYPE html>\n");
-			sb.append("<html lang=\"en-us\">\n");
-			sb.append("<head>\n"); // Fixed from <header>
-			//	This style sheet reference allows BlueGriffin to style text during edit.
-			
-			// TODO:  Fix hard coded CSS reference.
-			//sb.append("\t<link rel=\"stylesheet\" href=\"/" + STYLE_SHEET_URL + "\">\n");
-			sb.append("\t<link rel=\"stylesheet\" href=\"http://localhost:8080/nolaria/green.css\">\n");
-			sb.append("\t<title>"+title+"</title>\n");
-
-			// Add title and name meta tags.
-			sb.append("\t<meta name=\"title\" content=\"" + title + "\" />\n");
-			sb.append("\t<meta name=\"name\" content=\"" + name + "\" />\n");
-			sb.append("\t<meta name=\"pid\" content=\"" + pid + "\" />\n");
-			
-			sb.append("\t<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n");
-			sb.append("\t<meta http-equiv=\"Pragma\" content=\"no-cache\" />\n");
-			sb.append("\t<meta http-equiv=\"Expires\" content=\"0\" />\n");
-
-			sb.append("</head>\n"); // Fixed from </header>
-			sb.append("<body>\n");
-			sb.append("<h1>" + title + "</h1>\n");
-		}
-
-		// Generate text for a static web page.
-		else {
-			// Add header block with title and meta tags.
-			sb.append("<!DOCTYPE html>\n");
-			sb.append("<html lang=\"en-us\"");
-			sb.append("<head>\n"); // Fixed from <header>
-			String sytleSheetUrl = SiteRegistry.LOCAL_HOST + "/" + "nolaria" + "/" + "nolaria" + ".css";
-			sb.append("\t<link rel=\"stylesheet\" href=\"/" + sytleSheetUrl + "\">\n"); // This allows BlueGriffin to
-																							// see the style sheet.
-			sb.append("\t<title>" + title + "</title>\n");
-			sb.append("\t<meta name=\"title\" content=\"" + title + "\" />\n");
-			sb.append("\t<meta name=\"name\" content=\"" + name + "\" />\n");
-			sb.append("\t<meta name=\"pid\" content=\"" + pid + "\" />\n");
-
-			sb.append("\t<meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n");
-			sb.append("\t<meta http-equiv=\"Pragma\" content=\"no-cache\" />\n");
-			sb.append("\t<meta http-equiv=\"Expires\" content=\"0\" />\n");
-
-			// This is covered in the style sheet, so not needed.
-			// sb.append("\t<style>\n");
-			// sb.append("\tbody {\n");
-			// sb.append("\t\tcolor: black;\n");
-			// sb.append("\t\tfont-family: Arial;\n");
-			// sb.append("\t}\n");
-			// sb.append("\t</style>\n");
-
-			sb.append("</head>\n"); // Fixed from </header>
-			sb.append("<body>\n");
-			sb.append("<h1>" + title + "</h1>\n");
-		}
-
-		return sb.toString();
-	}
 	
 	/**
 	 * Generate a new header (HEAD) section given a PageId object
@@ -2112,7 +1341,7 @@ public class Converter {
 	 * @param page
 	 * @return header text
 	 */
-	private String getHeaderText(PageId page) {
+	private String getHeaderText(Site site, PageId page) {
 		StringBuffer sb = new StringBuffer();
 		
 		// Add header block with title and meta tags.
@@ -2123,7 +1352,9 @@ public class Converter {
 		
 		// TODO:  Fix hard coded CSS reference.
 		//sb.append("\t<link rel=\"stylesheet\" href=\"/" + STYLE_SHEET_URL + "\">\n");
-		sb.append("\t<link rel=\"stylesheet\" href=\"http://localhost:8080/nolaria/green.css\">\n");
+		//sb.append("\t<link rel=\"stylesheet\" href=\"http://localhost:8080/nolaria/green.css\">\n");
+		String cssUrl = SiteRegistry.LOCAL_HOST+FileSep+site.getName()+FileSep+site.getCss();
+		sb.append("\t<link rel=\"stylesheet\" href=\""+cssUrl+"\">\n");
 		sb.append("\t<title>"+page.getTitle()+"</title>\n");
 
 		// Add title and name meta tags.
@@ -2142,30 +1373,6 @@ public class Converter {
 		return sb.toString();
 	}
 
-	/**
-	 * @deprecated - not really needed.
-	 * Generate footer text to included in the output file. Text generation is
-	 * dependent on the contentOnly flag.
-	 * 
-	 * @param properties
-	 * @return footer text
-	 */
-	public String footerText(Map<String, String> properties) {
-		StringBuffer sb = new StringBuffer();
-
-		// Generate text for a content only output.
-		if (ContentOnly) {
-			// No footer text is generated.
-		}
-
-		// Generate text for a static web page.
-		else {
-			sb.append("</body>\n</html>\n");
-		}
-
-		return sb.toString();
-
-	}
 
 	/****************************************************************************
 	 * UTILITY METHODS

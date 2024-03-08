@@ -393,6 +393,7 @@ public class Util {
 			}
 			else {
 				//	Starting offset is found at BODY,
+				//	TODO:  There might be a bug here.  See SiteView notes for Mar. 7.
 				fixedHeader.append("<body>\n");
 				fixedHeader.append("\t<h1>"+pageInfo.title+"</h1>");			
 			}
